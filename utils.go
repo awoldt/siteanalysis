@@ -18,6 +18,7 @@ type HtmlDetails struct {
 
 type SiteResponse struct {
 	Url           string       `json:"url"`
+	UrlQuery      url.Values   `json:"urlQuery"`
 	StatusCode    int          `json:"statusCode"`
 	ResponseTime  string       `json:"responseTime"`
 	ContentLength *int64       `json:"contentLength"`
@@ -27,7 +28,6 @@ type SiteResponse struct {
 
 func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 	startTime := time.Now()
-
 	rawUrl := urlStr.String()
 
 	res, err := http.Get(rawUrl)
@@ -50,6 +50,7 @@ func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 
 	return SiteResponse{
 		Url:           rawUrl,
+		UrlQuery:      urlStr.Query(),
 		StatusCode:    res.StatusCode,
 		ResponseTime:  time.Since(startTime).String(),
 		ContentLength: contentLength,
