@@ -22,10 +22,10 @@ type SiteResponse struct {
 	HtmlDetails   *HtmlDetails `json:"html"`
 }
 
-func fetchSite(url string) (SiteResponse, error) {
+func fetchSite(urlStr string) (SiteResponse, error) {
 	startTime := time.Now()
 
-	res, err := http.Get(url)
+	res, err := http.Get(urlStr)
 	if err != nil {
 		return SiteResponse{}, err
 	}
@@ -44,7 +44,7 @@ func fetchSite(url string) (SiteResponse, error) {
 	}
 
 	return SiteResponse{
-		Url:           url,
+		Url:           urlStr,
 		StatusCode:    res.StatusCode,
 		ResponseTime:  time.Since(startTime).String(),
 		ContentLength: contentLength,
