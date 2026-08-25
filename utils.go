@@ -9,8 +9,8 @@ import (
 )
 
 type HtmlDetails struct {
-	Title       string
-	Description string
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
 type SiteResponse struct {
