@@ -12,13 +12,13 @@ import (
 )
 
 type HtmlDetails struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
 }
 
 type SiteResponse struct {
 	Url           string       `json:"url"`
-	UrlQuery      url.Values   `json:"urlQuery"`
+	UrlQuery      *url.Values  `json:"urlQuery"`
 	Status        string       `json:"status"`
 	StatusCode    int          `json:"statusCode"`
 	ResponseTime  string       `json:"responseTime"`
@@ -49,9 +49,15 @@ func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 		contentType = &ct
 	}
 
+	var urlQuery *url.Values
+	if len(urlStr.Query()) > 0 {
+		v := urlStr.Query()
+		urlQuery = &v
+	}
+
 	return SiteResponse{
 		Url:           rawUrl,
-		UrlQuery:      urlStr.Query(),
+		UrlQuery:      urlQuery,
 		StatusCode:    res.StatusCode,
 		Status:        res.Status,
 		ResponseTime:  time.Since(startTime).String(),
@@ -67,18 +73,33 @@ func parseHtml(body io.Reader) *HtmlDetails {
 		return nil
 	}
 
-	var title string
-	var description string
+	var title *string
+	var description *string
+
+	breakLoop := func() bool {
+		if title != nil &&
+			*title != "" &&
+			description != nil &&
+			*description != "" {
+			return true
+		}
+
+		return false
+	}
 
 	// loop through the DOM tree
 	for n := range html.Descendants() {
-		if title != "" && description != "" {
+		// no need to keep looping through DOM tree once we have all the
+		// values set we are looking for
+		if breakLoop() {
 			break
 		}
 
 		// title
-		if n.Data == "title" && n.FirstChild != nil && title == "" {
-			title = n.FirstChild.Data
+		if n.Data == "title" &&
+			n.FirstChild != nil &&
+			title == nil {
+			title = &n.FirstChild.Data
 		}
 
 		// description
@@ -86,14 +107,15 @@ func parseHtml(body io.Reader) *HtmlDetails {
 			// loop through all the attributes on this tag until you find name="description"
 			// then loop again until you find the contet="xxxx" attr (the actual description we want)
 			for _, v := range n.Attr {
-				if description != "" {
+				if description != nil && *description != "" {
 					break
 				}
 
 				if v.Key == "name" && v.Val == "description" {
 					for _, v2 := range n.Attr {
 						if v2.Key == "content" {
-							description = v2.Val
+							v := v2.Val
+							description = &v
 							break
 						}
 					}
