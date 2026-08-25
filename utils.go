@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"golang.org/x/net/html"
@@ -22,10 +25,12 @@ type SiteResponse struct {
 	HtmlDetails   *HtmlDetails `json:"html"`
 }
 
-func fetchSite(urlStr string) (SiteResponse, error) {
+func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 	startTime := time.Now()
 
-	res, err := http.Get(urlStr)
+	rawUrl := urlStr.String()
+
+	res, err := http.Get(rawUrl)
 	if err != nil {
 		return SiteResponse{}, err
 	}
@@ -44,7 +49,7 @@ func fetchSite(urlStr string) (SiteResponse, error) {
 	}
 
 	return SiteResponse{
-		Url:           urlStr,
+		Url:           rawUrl,
 		StatusCode:    res.StatusCode,
 		ResponseTime:  time.Since(startTime).String(),
 		ContentLength: contentLength,
@@ -96,4 +101,28 @@ func parseHtml(body io.Reader) *HtmlDetails {
 	}
 
 	return &HtmlDetails{Title: title, Description: description}
+}
+
+func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
+	// we first need to extract the site url query param
+	// from the url
+	// this is slighly more involved bc the site query value
+	// is an actual absolute url... which can also contain more ? in the url
+
+	// example: "?site=https://google.com?search=hello&device=phone"
+	// the "device" url query for the site url query wont be picked up
+
+	// find the index of "site="
+	index := strings.Index(urlStr, "site=")
+
+	// take the entire string after "site="
+	absoluteUrl := urlStr[index+5:]
+
+	// ensure this is a real absolute url
+	url, err := url.ParseRequestURI(absoluteUrl)
+	if err != nil {
+		return nil, fmt.Errorf("site url query is not a valid absolute url")
+	}
+
+	return url, nil
 }

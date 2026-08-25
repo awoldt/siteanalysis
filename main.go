@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json/v2"
 	"net/http"
-	"net/url"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -12,23 +11,15 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		queryParams := r.URL.Query()
-		siteUrl := queryParams.Get("site")
-		if siteUrl == "" {
-			w.WriteHeader(400)
-			w.Write([]byte("missing site url query"))
-			return
-		}
 
-		// make sure this is a legit http url
-		_, err := url.ParseRequestURI(siteUrl)
+		validUrl, err := extractAbsoluteSiteQuery(r.RequestURI)
 		if err != nil {
 			w.WriteHeader(400)
-			w.Write([]byte("not a valid site url"))
+			w.Write([]byte(err.Error()))
 			return
 		}
 
-		siteResponse, err := fetchSite(siteUrl)
+		siteResponse, err := fetchSite(validUrl)
 		if err != nil {
 			w.WriteHeader(400)
 			w.Write([]byte(err.Error()))
