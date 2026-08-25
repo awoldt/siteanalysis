@@ -28,7 +28,7 @@ func main() {
 			return
 		}
 
-		siteResponse, err := fetchSite(siteUrl)
+		siteResponse, err := fetchSite(siteUrl, r.Body)
 		if err != nil {
 			w.WriteHeader(400)
 			w.Write([]byte(err.Error()))
