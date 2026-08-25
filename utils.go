@@ -14,11 +14,11 @@ type HtmlDetails struct {
 }
 
 type SiteResponse struct {
-	StatusCode    int
-	ResponseTime  string
-	ContentLength *int64  // could be unknown (nil)
-	ContentType   *string // could be unknown (nil)
-	HtmlDetails   *HtmlDetails
+	StatusCode    int          `json:"statusCode"`
+	ResponseTime  string       `json:"responseTime"`
+	ContentLength *int64       `json:"contentLength"`
+	ContentType   *string      `json:"contentType"`
+	HtmlDetails   *HtmlDetails `json:"html"`
 }
 
 func fetchSite(url string) (SiteResponse, error) {
