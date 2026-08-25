@@ -32,16 +32,13 @@ func fetchSite(url string) (SiteResponse, error) {
 	defer res.Body.Close()
 
 	var contentLength *int64
-	cl := res.ContentLength
-	if cl == -1 {
-		contentLength = nil
+	if res.ContentLength != -1 {
+		contentLength = &res.ContentLength
 	}
 
 	var contentType *string
 	ct := res.Header.Get("Content-Type")
-	if ct == "" {
-		contentType = nil
-	} else {
+	if ct != "" {
 		contentType = &ct
 	}
 
