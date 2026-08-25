@@ -21,7 +21,7 @@ type SiteResponse struct {
 	HtmlDetails   *HtmlDetails
 }
 
-func fetchSite(url string, r io.Reader) (SiteResponse, error) {
+func fetchSite(url string) (SiteResponse, error) {
 	startTime := time.Now()
 
 	res, err := http.Get(url)
