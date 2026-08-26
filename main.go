@@ -11,7 +11,6 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-
 		validUrl, err := extractAbsoluteSiteQuery(r.RequestURI)
 		if err != nil {
 			w.WriteHeader(400)

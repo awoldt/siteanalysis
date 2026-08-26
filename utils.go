@@ -139,6 +139,9 @@ func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
 
 	// find the index of "site="
 	index := strings.Index(urlStr, "site=")
+	if index == -1 {
+		return nil, fmt.Errorf("missing site url query")
+	}
 
 	// take the entire string after "site="
 	absoluteUrl := urlStr[index+5:]
