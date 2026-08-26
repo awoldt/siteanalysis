@@ -118,8 +118,7 @@ func parseHtml(body io.Reader) *HtmlDetails {
 				if v.Key == "name" && v.Val == "description" {
 					for _, v2 := range n.Attr {
 						if v2.Key == "content" {
-							v := v2.Val
-							description = &v
+							description = &v2.Val
 							break
 						}
 					}
