@@ -12,10 +12,23 @@ import (
 	"golang.org/x/net/html"
 )
 
+type ScriptType string
+
+const (
+	InlineScript   ScriptType = "inline"
+	ExternalScript ScriptType = "external"
+)
+
+type ScriptTag struct {
+	Type ScriptType `json:"type"`
+	Src  *string    `json:"src,omitempty"`
+}
+
 type HtmlDetails struct {
-	Title       *string `json:"title"`
-	Description *string `json:"description"`
-	HeaderTags  *HTag   `json:"headerTags"`
+	Title       *string      `json:"title"`
+	Description *string      `json:"description"`
+	HeaderTags  *HeaderTag   `json:"headerTags"`
+	ScriptTags  *[]ScriptTag `json:"scriptTags"`
 }
 
 type SiteResponse struct {
@@ -29,9 +42,9 @@ type SiteResponse struct {
 	HtmlDetails   *HtmlDetails `json:"html"`
 }
 
-type HTag = map[string][]string
+type HeaderTag = map[string][]string
 
-var headerTags = []string{"h1", "h2", "h3", "h4", "h5", "h6"}
+var validHeaderTags = []string{"h1", "h2", "h3", "h4", "h5", "h6"}
 
 func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 	startTime := time.Now()
@@ -81,7 +94,8 @@ func parseHtml(body io.Reader) *HtmlDetails {
 
 	var title *string
 	var description *string
-	var hTags *HTag
+	var headerTags *HeaderTag
+	var scriptTags *[]ScriptTag
 
 	// loop through the DOM tree
 	for n := range html.Descendants() {
@@ -115,17 +129,39 @@ func parseHtml(body io.Reader) *HtmlDetails {
 		}
 
 		// header tags
-		if slices.Contains(headerTags, n.Data) {
-			if hTags == nil {
-				hTags = &map[string][]string{}
+		if slices.Contains(validHeaderTags, n.Data) {
+			if headerTags == nil {
+				headerTags = &map[string][]string{}
 			}
-			s := (*hTags)[n.Data]
+			s := (*headerTags)[n.Data]
 			s = append(s, n.FirstChild.Data)
-			(*hTags)[n.Data] = s
+			(*headerTags)[n.Data] = s
+		}
+
+		// script tags
+		if n.Data == "script" {
+			// determine if its an inline or external script
+			for _, v := range n.Attr {
+				if v.Key == "src" && v.Val != "" {
+					// external
+					if scriptTags == nil {
+						scriptTags = &[]ScriptTag{}
+					}
+
+					*scriptTags = append(*scriptTags, ScriptTag{Type: ExternalScript, Src: &v.Val})
+				}
+			}
+
+			// inline
+			if scriptTags == nil {
+				scriptTags = &[]ScriptTag{}
+			}
+			*scriptTags = append(*scriptTags, ScriptTag{Type: InlineScript})
+
 		}
 	}
 
-	return &HtmlDetails{Title: title, Description: description, HeaderTags: hTags}
+	return &HtmlDetails{Title: title, Description: description, HeaderTags: headerTags, ScriptTags: scriptTags}
 }
 
 func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
