@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 type HtmlDetails struct {
 	Title       *string `json:"title"`
 	Description *string `json:"description"`
+	HeaderTags  *HTag   `json:"headerTags"`
 }
 
 type SiteResponse struct {
@@ -26,6 +28,10 @@ type SiteResponse struct {
 	ContentType   *string      `json:"contentType"`
 	HtmlDetails   *HtmlDetails `json:"html"`
 }
+
+type HTag = map[string][]string
+
+var headerTags = []string{"h1", "h2", "h3", "h4", "h5", "h6"}
 
 func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 	startTime := time.Now()
@@ -75,26 +81,10 @@ func parseHtml(body io.Reader) *HtmlDetails {
 
 	var title *string
 	var description *string
-
-	breakLoop := func() bool {
-		if title != nil &&
-			*title != "" &&
-			description != nil &&
-			*description != "" {
-			return true
-		}
-
-		return false
-	}
+	var hTags *HTag
 
 	// loop through the DOM tree
 	for n := range html.Descendants() {
-		// no need to keep looping through DOM tree once we have all the
-		// values set we are looking for
-		if breakLoop() {
-			break
-		}
-
 		// title
 		if n.Data == "title" &&
 			n.FirstChild != nil &&
@@ -123,9 +113,19 @@ func parseHtml(body io.Reader) *HtmlDetails {
 			}
 
 		}
+
+		// header tags
+		if slices.Contains(headerTags, n.Data) {
+			if hTags == nil {
+				hTags = &map[string][]string{}
+			}
+			s := (*hTags)[n.Data]
+			s = append(s, n.FirstChild.Data)
+			(*hTags)[n.Data] = s
+		}
 	}
 
-	return &HtmlDetails{Title: title, Description: description}
+	return &HtmlDetails{Title: title, Description: description, HeaderTags: hTags}
 }
 
 func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
