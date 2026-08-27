@@ -97,35 +97,12 @@ func parseHtml(body io.Reader) *HtmlDetails {
 	var headerTags *HeaderTag
 	var scriptTags *[]ScriptTag
 
+	var htmlData *HtmlDetails
+
 	// loop through the DOM tree
 	for n := range html.Descendants() {
-		// title
-		if n.Data == "title" &&
-			n.FirstChild != nil &&
-			title == nil {
-			title = &n.FirstChild.Data
-		}
-
-		// description
-		if n.Data == "meta" && len(n.Attr) > 0 {
-			// loop through all the attributes on this tag until you find name="description"
-			// then loop again until you find the contet="xxxx" attr (the actual description we want)
-			for _, v := range n.Attr {
-				if description != nil && *description != "" {
-					break
-				}
-
-				if v.Key == "name" && v.Val == "description" {
-					for _, v2 := range n.Attr {
-						if v2.Key == "content" {
-							description = &v2.Val
-							break
-						}
-					}
-				}
-			}
-
-		}
+		htmlData = setTitle(n, htmlData)
+		htmlData = setDescription(n, htmlData)
 
 		// header tags
 		if slices.Contains(validHeaderTags, n.Data) {
@@ -188,4 +165,57 @@ func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
 	}
 
 	return url, nil
+}
+
+func setTitle(n *html.Node, htmlData *HtmlDetails) *HtmlDetails {
+	// not title tag or nothing to extract
+	if n.Data != "title" || n.FirstChild == nil || n.FirstChild.Data == "" {
+		return htmlData
+	}
+
+	// title is already set
+	if htmlData != nil && htmlData.Title != nil {
+		return htmlData
+	}
+
+	// there is a title to set
+	if n.FirstChild != nil && n.FirstChild.Data != "" {
+		if htmlData == nil {
+			return &HtmlDetails{Title: &n.FirstChild.Data}
+		}
+
+		htmlData.Title = &n.FirstChild.Data
+	}
+
+	return htmlData
+}
+
+func setDescription(n *html.Node, htmlData *HtmlDetails) *HtmlDetails {
+	// not description tag or nothing to extract
+	if n.Data != "meta" || len(n.Attr) == 0 {
+		return htmlData
+	}
+
+	// description is already set
+	if htmlData != nil && htmlData.Description != nil {
+		return htmlData
+	}
+
+	// loop through all the attributes on this tag until you find name="description"
+	// then loop again until you find the contet="xxxx" attr (the actual description we want)
+	for _, v := range n.Attr {
+		if v.Key == "name" && v.Val == "description" {
+			for _, v2 := range n.Attr {
+				if v2.Key == "content" {
+					if htmlData == nil {
+						return &HtmlDetails{Description: &v2.Val}
+					}
+					htmlData.Description = &v2.Val
+					break
+				}
+			}
+		}
+	}
+
+	return htmlData
 }
