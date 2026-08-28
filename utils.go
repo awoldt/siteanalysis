@@ -12,34 +12,21 @@ import (
 	"golang.org/x/net/html"
 )
 
-type ScriptType string
-
-const (
-	InlineScript   ScriptType = "inline"
-	ExternalScript ScriptType = "external"
-)
-
-type ScriptTag struct {
-	Type ScriptType `json:"type"`
-	Src  *string    `json:"src,omitempty"`
-}
-
 type HtmlDetails struct {
-	Title       *string      `json:"title"`
-	Description *string      `json:"description"`
-	HeaderTags  *HeaderTag   `json:"headerTags"`
-	ScriptTags  *[]ScriptTag `json:"scriptTags"`
+	Title       *string    `json:"title"`
+	Description *string    `json:"description"`
+	HeaderTags  *HeaderTag `json:"headerTags"`
 }
 
 type SiteResponse struct {
-	Url           string       `json:"url"`
-	UrlQuery      *url.Values  `json:"urlQuery"`
-	Status        string       `json:"status"`
-	StatusCode    int          `json:"statusCode"`
-	ResponseTime  string       `json:"responseTime"`
-	ContentLength *int64       `json:"contentLength"`
-	ContentType   *string      `json:"contentType"`
-	HtmlDetails   *HtmlDetails `json:"html"`
+	Url           string      `json:"url"`
+	UrlQuery      *url.Values `json:"urlQuery"`
+	Status        string      `json:"status"`
+	StatusCode    int         `json:"statusCode"`
+	ResponseTime  string      `json:"responseTime"`
+	ContentLength *int64      `json:"contentLength"`
+	ContentType   *string     `json:"contentType"`
+	HtmlDetails   HtmlDetails `json:"html"`
 }
 
 type HeaderTag = map[string][]string
@@ -86,58 +73,77 @@ func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 	}, nil
 }
 
-func parseHtml(body io.Reader) *HtmlDetails {
+func parseHtml(body io.Reader) HtmlDetails {
 	html, err := html.Parse(body)
 	if err != nil {
-		return nil
+		return HtmlDetails{}
 	}
 
-	var title *string
-	var description *string
-	var headerTags *HeaderTag
-	var scriptTags *[]ScriptTag
-
-	var htmlData *HtmlDetails
+	var htmlData HtmlDetails
 
 	// loop through the DOM tree
 	for n := range html.Descendants() {
-		htmlData = setTitle(n, htmlData)
-		htmlData = setDescription(n, htmlData)
+		switch n.Data {
+		// title
+		case "title":
+			{
+				if n.FirstChild == nil || n.FirstChild.Data == "" {
+					continue
+				}
 
-		// header tags
-		if slices.Contains(validHeaderTags, n.Data) {
-			if headerTags == nil {
-				headerTags = &map[string][]string{}
-			}
-			s := (*headerTags)[n.Data]
-			s = append(s, n.FirstChild.Data)
-			(*headerTags)[n.Data] = s
-		}
-
-		// script tags
-		if n.Data == "script" {
-			// determine if its an inline or external script
-			for _, v := range n.Attr {
-				if v.Key == "src" && v.Val != "" {
-					// external
-					if scriptTags == nil {
-						scriptTags = &[]ScriptTag{}
-					}
-
-					*scriptTags = append(*scriptTags, ScriptTag{Type: ExternalScript, Src: &v.Val})
+				if htmlData.Title == nil || *htmlData.Title == "" {
+					htmlData.Title = &n.FirstChild.Data
 				}
 			}
 
-			// inline
-			if scriptTags == nil {
-				scriptTags = &[]ScriptTag{}
-			}
-			*scriptTags = append(*scriptTags, ScriptTag{Type: InlineScript})
+		// description
+		case "meta":
+			{
+				if len(n.Attr) == 0 || htmlData.Description != nil {
+					continue
+				}
 
+				// loop through all the attributes on this tag until you find name="description"
+				// then loop again until you find the contet="xxxx" attr (the actual description we want)
+				b := false
+				for _, v := range n.Attr {
+					if v.Key == "name" && v.Val == "description" {
+						for _, v2 := range n.Attr {
+							if v2.Key == "content" {
+								htmlData.Description = &v2.Val
+								b = true
+								break
+							}
+						}
+					}
+					if b {
+						break
+					}
+				}
+			}
+
+		default:
+			{
+				// header tags
+				if slices.Contains(validHeaderTags, n.Data) {
+					if n.FirstChild == nil || n.FirstChild.Data == "" {
+						continue
+					}
+
+					if htmlData.HeaderTags == nil {
+						htmlData.HeaderTags = &map[string][]string{}
+					}
+
+					s := (*htmlData.HeaderTags)[n.Data]
+					s = append(s, n.FirstChild.Data)
+					(*htmlData.HeaderTags)[n.Data] = s
+				}
+			}
 		}
+
 	}
 
-	return &HtmlDetails{Title: title, Description: description, HeaderTags: headerTags, ScriptTags: scriptTags}
+	return htmlData
 }
 
 func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
@@ -165,57 +171,4 @@ func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
 	}
 
 	return url, nil
-}
-
-func setTitle(n *html.Node, htmlData *HtmlDetails) *HtmlDetails {
-	// not title tag or nothing to extract
-	if n.Data != "title" || n.FirstChild == nil || n.FirstChild.Data == "" {
-		return htmlData
-	}
-
-	// title is already set
-	if htmlData != nil && htmlData.Title != nil {
-		return htmlData
-	}
-
-	// there is a title to set
-	if n.FirstChild != nil && n.FirstChild.Data != "" {
-		if htmlData == nil {
-			return &HtmlDetails{Title: &n.FirstChild.Data}
-		}
-
-		htmlData.Title = &n.FirstChild.Data
-	}
-
-	return htmlData
-}
-
-func setDescription(n *html.Node, htmlData *HtmlDetails) *HtmlDetails {
-	// not description tag or nothing to extract
-	if n.Data != "meta" || len(n.Attr) == 0 {
-		return htmlData
-	}
-
-	// description is already set
-	if htmlData != nil && htmlData.Description != nil {
-		return htmlData
-	}
-
-	// loop through all the attributes on this tag until you find name="description"
-	// then loop again until you find the contet="xxxx" attr (the actual description we want)
-	for _, v := range n.Attr {
-		if v.Key == "name" && v.Val == "description" {
-			for _, v2 := range n.Attr {
-				if v2.Key == "content" {
-					if htmlData == nil {
-						return &HtmlDetails{Description: &v2.Val}
-					}
-					htmlData.Description = &v2.Val
-					break
-				}
-			}
-		}
-	}
-
-	return htmlData
 }
