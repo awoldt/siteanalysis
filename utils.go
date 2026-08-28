@@ -5,18 +5,21 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
 	"golang.org/x/net/html"
 )
 
+type HeaderTag = map[string][]string
+
 type HtmlDetails struct {
-	Title       *string    `json:"title"`
-	Description *string    `json:"description"`
-	HeaderTags  *HeaderTag `json:"headerTags"`
-	SpanTags    *[]string  `json:"spanTags"`
+	Title         *string    `json:"title"`
+	Description   *string    `json:"description"`
+	HeaderTags    *HeaderTag `json:"headerTags"`
+	SpanTags      *[]string  `json:"spanTags"`
+	ImgTags       *[]string  `json:"imgTags"`
+	ParagraphTags *[]string  `json:"pTags"`
 }
 
 type SiteResponse struct {
@@ -29,10 +32,6 @@ type SiteResponse struct {
 	ContentType   *string     `json:"contentType"`
 	HtmlDetails   HtmlDetails `json:"html"`
 }
-
-type HeaderTag = map[string][]string
-
-var validHeaderTags = []string{"h1", "h2", "h3", "h4", "h5", "h6"}
 
 func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 	startTime := time.Now()
@@ -136,31 +135,62 @@ func parseHtml(body io.Reader) HtmlDetails {
 				if htmlData.SpanTags == nil {
 					htmlData.SpanTags = &[]string{s}
 				} else {
-					x := htmlData.SpanTags
-					*x = append(*x, s)
-					htmlData.SpanTags = x
+					*htmlData.SpanTags = append(*htmlData.SpanTags, s)
 				}
 			}
 
-		default:
+		case "p":
 			{
-				// header tags
-				if slices.Contains(validHeaderTags, n.Data) {
-					if n.FirstChild == nil || n.FirstChild.Data == "" {
-						continue
-					}
+				if n.FirstChild == nil || n.FirstChild.Data == "" {
+					continue
+				}
 
-					if htmlData.HeaderTags == nil {
-						htmlData.HeaderTags = &map[string][]string{}
-					}
+				s := strings.TrimSpace(n.FirstChild.Data)
 
-					s := strings.TrimSpace(n.FirstChild.Data)
-
-					x := (*htmlData.HeaderTags)[n.Data]
-					x = append(x, s)
-					(*htmlData.HeaderTags)[n.Data] = x
+				if htmlData.ParagraphTags == nil {
+					htmlData.ParagraphTags = &[]string{s}
+				} else {
+					*htmlData.ParagraphTags = append(*htmlData.ParagraphTags, s)
 				}
 			}
+
+		case "img":
+			{
+				if len(n.Attr) == 0 {
+					continue
+				}
+
+				// loop through all the attributes on this tag until you find src
+				for _, v := range n.Attr {
+					if v.Key == "src" && v.Val != "" {
+						if htmlData.ImgTags == nil {
+							htmlData.ImgTags = &[]string{v.Val}
+						} else {
+							*htmlData.ImgTags = append(*htmlData.ImgTags, v.Val)
+						}
+
+						break
+					}
+				}
+			}
+
+		case "h1", "h2", "h3", "h4", "h5", "h6":
+			{
+				if n.FirstChild == nil || n.FirstChild.Data == "" {
+					continue
+				}
+
+				if htmlData.HeaderTags == nil {
+					htmlData.HeaderTags = &map[string][]string{}
+				}
+
+				s := strings.TrimSpace(n.FirstChild.Data)
+
+				x := (*htmlData.HeaderTags)[n.Data]
+				x = append(x, s)
+				(*htmlData.HeaderTags)[n.Data] = x
+			}
+
 		}
 
 	}
