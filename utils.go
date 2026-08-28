@@ -16,6 +16,7 @@ type HtmlDetails struct {
 	Title       *string    `json:"title"`
 	Description *string    `json:"description"`
 	HeaderTags  *HeaderTag `json:"headerTags"`
+	SpanTags    *[]string  `json:"spanTags"`
 }
 
 type SiteResponse struct {
@@ -92,7 +93,8 @@ func parseHtml(body io.Reader) HtmlDetails {
 				}
 
 				if htmlData.Title == nil || *htmlData.Title == "" {
-					htmlData.Title = &n.FirstChild.Data
+					s := strings.TrimSpace(n.FirstChild.Data)
+					htmlData.Title = &s
 				}
 			}
 
@@ -110,7 +112,8 @@ func parseHtml(body io.Reader) HtmlDetails {
 					if v.Key == "name" && v.Val == "description" {
 						for _, v2 := range n.Attr {
 							if v2.Key == "content" {
-								htmlData.Description = &v2.Val
+								s := strings.TrimSpace(v2.Val)
+								htmlData.Description = &s
 								b = true
 								break
 							}
@@ -119,6 +122,23 @@ func parseHtml(body io.Reader) HtmlDetails {
 					if b {
 						break
 					}
+				}
+			}
+
+		case "span":
+			{
+				if n.FirstChild == nil || n.FirstChild.Data == "" {
+					continue
+				}
+
+				s := strings.TrimSpace(n.FirstChild.Data)
+
+				if htmlData.SpanTags == nil {
+					htmlData.SpanTags = &[]string{s}
+				} else {
+					x := htmlData.SpanTags
+					*x = append(*x, s)
+					htmlData.SpanTags = x
 				}
 			}
 
@@ -134,9 +154,11 @@ func parseHtml(body io.Reader) HtmlDetails {
 						htmlData.HeaderTags = &map[string][]string{}
 					}
 
-					s := (*htmlData.HeaderTags)[n.Data]
-					s = append(s, n.FirstChild.Data)
-					(*htmlData.HeaderTags)[n.Data] = s
+					s := strings.TrimSpace(n.FirstChild.Data)
+
+					x := (*htmlData.HeaderTags)[n.Data]
+					x = append(x, s)
+					(*htmlData.HeaderTags)[n.Data] = x
 				}
 			}
 		}
