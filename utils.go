@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,13 +12,19 @@ import (
 
 type HeaderTag = map[string][]string
 
+type ScriptTag struct {
+	Src     *string `json:"src,omitempty"`
+	Content *string `json:"content,omitempty"`
+}
+
 type HtmlDetails struct {
-	Title         *string    `json:"title"`
-	Description   *string    `json:"description"`
-	HeaderTags    *HeaderTag `json:"headerTags"`
-	SpanTags      *[]string  `json:"spanTags"`
-	ImgTags       *[]string  `json:"imgTags"`
-	ParagraphTags *[]string  `json:"pTags"`
+	Title         *string      `json:"title"`
+	Description   *string      `json:"description"`
+	HeaderTags    *HeaderTag   `json:"headerTags"`
+	SpanTags      *[]string    `json:"spanTags"`
+	ImgTags       *[]string    `json:"imageTags"`
+	ParagraphTags *[]string    `json:"paragraphTags"`
+	ScriptTags    *[]ScriptTag `json:"scriptTags"`
 }
 
 type SiteResponse struct {
@@ -69,12 +74,12 @@ func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 		ResponseTime:  time.Since(startTime).String(),
 		ContentLength: contentLength,
 		ContentType:   contentType,
-		HtmlDetails:   parseHtml(res.Body),
+		HtmlDetails:   parseHtml(res),
 	}, nil
 }
 
-func parseHtml(body io.Reader) HtmlDetails {
-	html, err := html.Parse(body)
+func parseHtml(response *http.Response) HtmlDetails {
+	html, err := html.Parse(response.Body)
 	if err != nil {
 		return HtmlDetails{}
 	}
@@ -84,7 +89,7 @@ func parseHtml(body io.Reader) HtmlDetails {
 	// loop through the DOM tree
 	for n := range html.Descendants() {
 		switch n.Data {
-		// title
+
 		case "title":
 			{
 				if n.FirstChild == nil || n.FirstChild.Data == "" {
@@ -97,7 +102,6 @@ func parseHtml(body io.Reader) HtmlDetails {
 				}
 			}
 
-		// description
 		case "meta":
 			{
 				if len(n.Attr) == 0 || htmlData.Description != nil {
@@ -191,8 +195,47 @@ func parseHtml(body io.Reader) HtmlDetails {
 				(*htmlData.HeaderTags)[n.Data] = x
 			}
 
-		}
+		case "script":
+			{
+				// determine if this is an inline or external script tag
+				scriptSrc := ""
+				for _, v := range n.Attr {
+					if v.Key == "src" {
+						scriptSrc = v.Val
+						break
+					}
+				}
 
+				if scriptSrc == "" {
+					// inline
+					if n.FirstChild != nil && n.FirstChild.Data != "" {
+						if htmlData.ScriptTags == nil {
+							htmlData.ScriptTags = &[]ScriptTag{{Content: &n.FirstChild.Data}}
+						} else {
+							*htmlData.ScriptTags = append(*htmlData.ScriptTags, ScriptTag{Content: &n.FirstChild.Data})
+						}
+					}
+				} else {
+					// external
+					// determine if src to script is from site origin or external sit
+
+					url, _ := url.ParseRequestURI(scriptSrc)
+					if url.Host == "" {
+						// points to origin site
+						scriptSrc = fmt.Sprintf("%v://%v%v", response.Request.URL.Scheme, response.Request.Host, scriptSrc)
+					} else {
+						// points to external site
+						scriptSrc = fmt.Sprintf("%v://%v%v", url.Scheme, url.Host, url.Path)
+					}
+
+					if htmlData.ScriptTags == nil {
+						htmlData.ScriptTags = &[]ScriptTag{{Src: &scriptSrc}}
+					} else {
+						*htmlData.ScriptTags = append(*htmlData.ScriptTags, ScriptTag{Src: &scriptSrc})
+					}
+				}
+			}
+		}
 	}
 
 	return htmlData
