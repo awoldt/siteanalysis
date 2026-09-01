@@ -100,13 +100,13 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "title":
 			{
-				if n.FirstChild == nil || n.FirstChild.Data == "" {
+				text := extractText(n)
+				if text == "" {
 					continue
 				}
 
 				if htmlData.Title == nil || *htmlData.Title == "" {
-					s := strings.TrimSpace(n.FirstChild.Data)
-					htmlData.Title = &s
+					htmlData.Title = &text
 				}
 			}
 
@@ -138,31 +138,29 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "span":
 			{
-				if n.FirstChild == nil || n.FirstChild.Data == "" {
+				text := extractText(n)
+				if text == "" {
 					continue
 				}
 
-				s := strings.TrimSpace(n.FirstChild.Data)
-
 				if htmlData.SpanTags == nil {
-					htmlData.SpanTags = &[]string{s}
+					htmlData.SpanTags = &[]string{text}
 				} else {
-					*htmlData.SpanTags = append(*htmlData.SpanTags, s)
+					*htmlData.SpanTags = append(*htmlData.SpanTags, text)
 				}
 			}
 
 		case "p":
 			{
-				if n.FirstChild == nil || n.FirstChild.Data == "" {
+				text := extractText(n)
+				if text == "" {
 					continue
 				}
 
-				s := strings.TrimSpace(n.FirstChild.Data)
-
 				if htmlData.ParagraphTags == nil {
-					htmlData.ParagraphTags = &[]string{s}
+					htmlData.ParagraphTags = &[]string{text}
 				} else {
-					*htmlData.ParagraphTags = append(*htmlData.ParagraphTags, s)
+					*htmlData.ParagraphTags = append(*htmlData.ParagraphTags, text)
 				}
 			}
 
@@ -195,7 +193,8 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "h1", "h2", "h3", "h4", "h5", "h6":
 			{
-				if n.FirstChild == nil || n.FirstChild.Data == "" {
+				text := extractText(n)
+				if text == "" {
 					continue
 				}
 
@@ -203,10 +202,8 @@ func parseHtml(response *http.Response) HtmlDetails {
 					htmlData.HeaderTags = &map[string][]string{}
 				}
 
-				s := strings.TrimSpace(n.FirstChild.Data)
-
 				x := (*htmlData.HeaderTags)[n.Data]
-				x = append(x, s)
+				x = append(x, text)
 				(*htmlData.HeaderTags)[n.Data] = x
 			}
 
@@ -365,4 +362,34 @@ func getSrcUrl(str string, response *http.Response) string {
 	}
 
 	return src
+}
+
+func extractText(n *html.Node) string {
+	// walk down the dom tree until you find the inner-most child
+	// with a type of "text" node
+
+	// more sibling to sibling across nodes and collect all text
+
+	// ex: the h1 tag below should extract "Business openings and closings in August 2026 roundup"
+	// <h1>
+	//   Business <span>openings and <a href="#">closings</a></span> in
+	//   <em>August</em>
+	//   <span><b>2026</b> roundup</span>
+	// </h1>
+
+	var text strings.Builder
+
+	for node := range n.Descendants() {
+		data := strings.TrimSpace(node.Data)
+
+		if data == "" {
+			continue
+		}
+
+		if node.Type == html.TextNode {
+			text.WriteString(data)
+		}
+	}
+
+	return text.String()
 }
