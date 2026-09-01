@@ -164,13 +164,16 @@ func parseHtml(response *http.Response) HtmlDetails {
 					continue
 				}
 
+				src := ""
+
 				// loop through all the attributes on this tag until you find src
 				for _, v := range n.Attr {
 					if v.Key == "src" && v.Val != "" {
+						src = getSrcUrl(v.Val, response)
 						if htmlData.ImgTags == nil {
-							htmlData.ImgTags = &[]string{v.Val}
+							htmlData.ImgTags = &[]string{src}
 						} else {
-							*htmlData.ImgTags = append(*htmlData.ImgTags, v.Val)
+							*htmlData.ImgTags = append(*htmlData.ImgTags, src)
 						}
 
 						break
@@ -217,16 +220,7 @@ func parseHtml(response *http.Response) HtmlDetails {
 					}
 				} else {
 					// external
-					// determine if src to script is from site origin or external sit
-
-					url, _ := url.ParseRequestURI(scriptSrc)
-					if url.Host == "" {
-						// points to origin site
-						scriptSrc = fmt.Sprintf("%v://%v%v", response.Request.URL.Scheme, response.Request.Host, scriptSrc)
-					} else {
-						// points to external site
-						scriptSrc = fmt.Sprintf("%v://%v%v", url.Scheme, url.Host, url.Path)
-					}
+					scriptSrc = getSrcUrl(scriptSrc, response)
 
 					if htmlData.ScriptTags == nil {
 						htmlData.ScriptTags = &[]ScriptTag{{Src: &scriptSrc}}
@@ -266,4 +260,28 @@ func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
 	}
 
 	return url, nil
+}
+
+func getSrcUrl(str string, response *http.Response) string {
+	// this function will take in either an absolute or relative url
+	// and return an absolute
+	// its used for getting think like img src and script src urls...
+
+	// for example, if i parse https://google.com and this has a script tag that
+	// loads js from a differnet domain, the result for the script tag src would be
+	// relative "/js/data.js".. when we need it to be "https://othersite.com/js/data.js" instead
+
+	src := ""
+
+	url, _ := url.ParseRequestURI(str)
+	if url.Host == "" {
+		// points to origin site
+		src = fmt.Sprintf("%v://%v%v", response.Request.URL.Scheme, response.Request.Host, str)
+	} else {
+		// points to external site
+		src = fmt.Sprintf("%v://%v%v", url.Scheme, url.Host, url.Path)
+	}
+
+	return src
+
 }
