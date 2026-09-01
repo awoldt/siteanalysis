@@ -25,6 +25,7 @@ type HtmlDetails struct {
 	ImgTags       *[]string    `json:"imageTags"`
 	ParagraphTags *[]string    `json:"paragraphTags"`
 	ScriptTags    *[]ScriptTag `json:"scriptTags"`
+	AnchorTags    *[]string    `json:"anchorTags"`
 }
 
 type SiteResponse struct {
@@ -203,7 +204,7 @@ func parseHtml(response *http.Response) HtmlDetails {
 				// determine if this is an inline or external script tag
 				scriptSrc := ""
 				for _, v := range n.Attr {
-					if v.Key == "src" {
+					if v.Key == "src" && v.Val != "" {
 						scriptSrc = v.Val
 						break
 					}
@@ -227,6 +228,27 @@ func parseHtml(response *http.Response) HtmlDetails {
 					} else {
 						*htmlData.ScriptTags = append(*htmlData.ScriptTags, ScriptTag{Src: &scriptSrc})
 					}
+				}
+			}
+
+		case "a":
+			{
+				if len(n.Attr) == 0 {
+					continue
+				}
+
+				href := ""
+				for _, v := range n.Attr {
+					if v.Key == "href" && v.Val != "" {
+						href = getSrcUrl(v.Val, response)
+						break
+					}
+				}
+
+				if htmlData.AnchorTags == nil {
+					htmlData.AnchorTags = &[]string{href}
+				} else {
+					*htmlData.AnchorTags = append(*htmlData.AnchorTags, href)
 				}
 			}
 		}
