@@ -269,39 +269,39 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "ul", "ol":
 			{
-				if n.FirstChild == nil || n.FirstChild.Data == "" {
-					continue
-				}
-
 				// loop through all the lis of the list
 				for li := range n.Descendants() {
-					if li.Data != "li" || li.FirstChild == nil || li.FirstChild.Data == "" {
-						continue
-					}
-
-					switch n.Data {
-					case "ol":
-						{
-							if htmlData.Lists == nil || htmlData.Lists.OrderedLists == nil {
-								htmlData.Lists = &ListTags{OrderedLists: &[]string{li.FirstChild.Data}}
-							} else {
-								x := htmlData.Lists
-								*x.OrderedLists = append(*x.OrderedLists, li.FirstChild.Data)
-								htmlData.Lists = x
-							}
+					if li.Data == "li" {
+						text := extractText(li)
+						if text == "" {
+							continue
 						}
 
-					case "ul":
-						{
-							if htmlData.Lists == nil || htmlData.Lists.UnorderedLists == nil {
-								htmlData.Lists = &ListTags{UnorderedLists: &[]string{li.FirstChild.Data}}
-							} else {
-								x := htmlData.Lists
-								*x.UnorderedLists = append(*x.UnorderedLists, li.FirstChild.Data)
-								htmlData.Lists = x
+						switch n.Data {
+						case "ol":
+							{
+								if htmlData.Lists == nil || htmlData.Lists.OrderedLists == nil {
+									htmlData.Lists = &ListTags{OrderedLists: &[]string{text}}
+								} else {
+									x := htmlData.Lists
+									*x.OrderedLists = append(*x.OrderedLists, text)
+									htmlData.Lists = x
+								}
+							}
+
+						case "ul":
+							{
+								if htmlData.Lists == nil || htmlData.Lists.UnorderedLists == nil {
+									htmlData.Lists = &ListTags{UnorderedLists: &[]string{text}}
+								} else {
+									x := htmlData.Lists
+									*x.UnorderedLists = append(*x.UnorderedLists, text)
+									htmlData.Lists = x
+								}
 							}
 						}
 					}
+
 				}
 			}
 		}
