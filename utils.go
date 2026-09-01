@@ -17,6 +17,11 @@ type ScriptTag struct {
 	Content *string `json:"content,omitempty"`
 }
 
+type ListTags struct {
+	OrderedLists   *[]string `json:"orderedList,omitempty"`
+	UnorderedLists *[]string `json:"unorderedLists,omitempty"`
+}
+
 type HtmlDetails struct {
 	Title         *string      `json:"title"`
 	Description   *string      `json:"description"`
@@ -26,6 +31,7 @@ type HtmlDetails struct {
 	ParagraphTags *[]string    `json:"paragraphTags"`
 	ScriptTags    *[]ScriptTag `json:"scriptTags"`
 	AnchorTags    *[]string    `json:"anchorTags"`
+	Lists         *ListTags    `json:"listTags"`
 }
 
 type SiteResponse struct {
@@ -89,6 +95,7 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 	// loop through the DOM tree
 	for n := range html.Descendants() {
+
 		switch n.Data {
 
 		case "title":
@@ -260,6 +267,44 @@ func parseHtml(response *http.Response) HtmlDetails {
 					htmlData.AnchorTags = &[]string{href}
 				} else {
 					*htmlData.AnchorTags = append(*htmlData.AnchorTags, href)
+				}
+			}
+
+		case "ul", "ol":
+			{
+				if n.FirstChild == nil || n.FirstChild.Data == "" {
+					continue
+				}
+
+				// loop through all the lis of the list
+				for li := range n.Descendants() {
+					if li.Data != "li" || li.FirstChild == nil || li.FirstChild.Data == "" {
+						continue
+					}
+
+					switch n.Data {
+					case "ol":
+						{
+							if htmlData.Lists == nil || htmlData.Lists.OrderedLists == nil {
+								htmlData.Lists = &ListTags{OrderedLists: &[]string{li.FirstChild.Data}}
+							} else {
+								x := htmlData.Lists
+								*x.OrderedLists = append(*x.OrderedLists, li.FirstChild.Data)
+								htmlData.Lists = x
+							}
+						}
+
+					case "ul":
+						{
+							if htmlData.Lists == nil || htmlData.Lists.UnorderedLists == nil {
+								htmlData.Lists = &ListTags{UnorderedLists: &[]string{li.FirstChild.Data}}
+							} else {
+								x := htmlData.Lists
+								*x.UnorderedLists = append(*x.UnorderedLists, li.FirstChild.Data)
+								htmlData.Lists = x
+							}
+						}
+					}
 				}
 			}
 		}
