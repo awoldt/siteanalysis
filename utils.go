@@ -18,8 +18,8 @@ type ScriptTag struct {
 }
 
 type ListTag struct {
-	OrderedLists   *[]string `json:"orderedList,omitempty"`
-	UnorderedLists *[]string `json:"unorderedLists,omitempty"`
+	OrderedLists   *[]string `json:"orderedList"`
+	UnorderedLists *[]string `json:"unorderedList"`
 }
 
 type Table struct {
