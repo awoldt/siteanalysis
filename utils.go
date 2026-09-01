@@ -17,9 +17,14 @@ type ScriptTag struct {
 	Content *string `json:"content,omitempty"`
 }
 
-type ListTags struct {
+type ListTag struct {
 	OrderedLists   *[]string `json:"orderedList,omitempty"`
 	UnorderedLists *[]string `json:"unorderedLists,omitempty"`
+}
+
+type Table struct {
+	Headers *[]string `json:"header,omitempty"` // the header text of each column
+	Rows    *[]string `json:"rows,omitempty"`
 }
 
 type HtmlDetails struct {
@@ -31,7 +36,8 @@ type HtmlDetails struct {
 	ParagraphTags *[]string    `json:"paragraphTags"`
 	ScriptTags    *[]ScriptTag `json:"scriptTags"`
 	AnchorTags    *[]string    `json:"anchorTags"`
-	Lists         *ListTags    `json:"listTags"`
+	Lists         *ListTag     `json:"listTags"`
+	Tables        *[]Table     `json:"tableTags"`
 }
 
 type SiteResponse struct {
@@ -100,10 +106,11 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "title":
 			{
-				text := extractText(n)
-				if text == "" {
+				words := extractWords(n)
+				if len(words) == 0 {
 					continue
 				}
+				text := strings.Join(words, " ")
 
 				if htmlData.Title == nil || *htmlData.Title == "" {
 					htmlData.Title = &text
@@ -138,10 +145,11 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "span":
 			{
-				text := extractText(n)
-				if text == "" {
+				words := extractWords(n)
+				if len(words) == 0 {
 					continue
 				}
+				text := strings.Join(words, " ")
 
 				if htmlData.SpanTags == nil {
 					htmlData.SpanTags = &[]string{text}
@@ -152,10 +160,11 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "p":
 			{
-				text := extractText(n)
-				if text == "" {
+				words := extractWords(n)
+				if len(words) == 0 {
 					continue
 				}
+				text := strings.Join(words, " ")
 
 				if htmlData.ParagraphTags == nil {
 					htmlData.ParagraphTags = &[]string{text}
@@ -193,10 +202,11 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "h1", "h2", "h3", "h4", "h5", "h6":
 			{
-				text := extractText(n)
-				if text == "" {
+				words := extractWords(n)
+				if len(words) == 0 {
 					continue
 				}
+				text := strings.Join(words, " ")
 
 				if htmlData.HeaderTags == nil {
 					htmlData.HeaderTags = &map[string][]string{}
@@ -272,16 +282,17 @@ func parseHtml(response *http.Response) HtmlDetails {
 				// loop through all the lis of the list
 				for li := range n.Descendants() {
 					if li.Data == "li" {
-						text := extractText(li)
-						if text == "" {
+						words := extractWords(n)
+						if len(words) == 0 {
 							continue
 						}
+						text := strings.Join(words, " ")
 
 						switch n.Data {
 						case "ol":
 							{
 								if htmlData.Lists == nil || htmlData.Lists.OrderedLists == nil {
-									htmlData.Lists = &ListTags{OrderedLists: &[]string{text}}
+									htmlData.Lists = &ListTag{OrderedLists: &[]string{text}}
 								} else {
 									x := htmlData.Lists
 									*x.OrderedLists = append(*x.OrderedLists, text)
@@ -292,7 +303,7 @@ func parseHtml(response *http.Response) HtmlDetails {
 						case "ul":
 							{
 								if htmlData.Lists == nil || htmlData.Lists.UnorderedLists == nil {
-									htmlData.Lists = &ListTags{UnorderedLists: &[]string{text}}
+									htmlData.Lists = &ListTag{UnorderedLists: &[]string{text}}
 								} else {
 									x := htmlData.Lists
 									*x.UnorderedLists = append(*x.UnorderedLists, text)
@@ -303,6 +314,46 @@ func parseHtml(response *http.Response) HtmlDetails {
 					}
 
 				}
+			}
+
+		case "table":
+			{
+				headers := []string{}
+				rows := []string{}
+
+				// extract all text from the <thead> and <tbody> tags
+				for tabletags := range n.Descendants() {
+					if tabletags.Data == "thead" {
+						headersText := extractWords(tabletags)
+						if len(headersText) > 0 {
+							headers = append(headers, headersText...)
+						}
+					}
+
+					if tabletags.Data == "tbody" {
+						bodyText := extractWords(tabletags)
+						if len(bodyText) > 0 {
+							rows = append(rows, bodyText...)
+						}
+					}
+				}
+
+				if len(headers) > 0 {
+					if htmlData.Tables == nil {
+						htmlData.Tables = &[]Table{{Headers: &headers}}
+					} else {
+						*htmlData.Tables = append(*htmlData.Tables, Table{Headers: &headers})
+					}
+				}
+
+				if len(rows) > 0 {
+					if htmlData.Tables == nil {
+						htmlData.Tables = &[]Table{{Rows: &rows}}
+					} else {
+						*htmlData.Tables = append(*htmlData.Tables, Table{Rows: &rows})
+					}
+				}
+
 			}
 		}
 	}
@@ -364,7 +415,7 @@ func getSrcUrl(str string, response *http.Response) string {
 	return src
 }
 
-func extractText(n *html.Node) string {
+func extractWords(n *html.Node) []string {
 	// walk down the dom tree until you find the inner-most child
 	// with a type of "text" node
 
@@ -377,7 +428,7 @@ func extractText(n *html.Node) string {
 	//   <span><b>2026</b> roundup</span>
 	// </h1>
 
-	var text strings.Builder
+	words := []string{}
 
 	for node := range n.Descendants() {
 		data := strings.TrimSpace(node.Data)
@@ -387,9 +438,9 @@ func extractText(n *html.Node) string {
 		}
 
 		if node.Type == html.TextNode {
-			text.WriteString(data)
+			words = append(words, data)
 		}
 	}
 
-	return text.String()
+	return words
 }
