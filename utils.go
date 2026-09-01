@@ -23,8 +23,8 @@ type ListTag struct {
 }
 
 type Table struct {
-	Headers *[]string `json:"header,omitempty"` // the header text of each column
-	Rows    *[]string `json:"rows,omitempty"`
+	Headers *[]string `json:"header"` // the header text of each column
+	Rows    *[]string `json:"rows"`
 }
 
 type HtmlDetails struct {
