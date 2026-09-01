@@ -171,6 +171,10 @@ func parseHtml(response *http.Response) HtmlDetails {
 				for _, v := range n.Attr {
 					if v.Key == "src" && v.Val != "" {
 						src = getSrcUrl(v.Val, response)
+						if src == "" {
+							continue
+						}
+
 						if htmlData.ImgTags == nil {
 							htmlData.ImgTags = &[]string{src}
 						} else {
@@ -222,6 +226,9 @@ func parseHtml(response *http.Response) HtmlDetails {
 				} else {
 					// external
 					scriptSrc = getSrcUrl(scriptSrc, response)
+					if scriptSrc == "" {
+						continue
+					}
 
 					if htmlData.ScriptTags == nil {
 						htmlData.ScriptTags = &[]ScriptTag{{Src: &scriptSrc}}
@@ -241,6 +248,10 @@ func parseHtml(response *http.Response) HtmlDetails {
 				for _, v := range n.Attr {
 					if v.Key == "href" && v.Val != "" {
 						href = getSrcUrl(v.Val, response)
+						if href == "" {
+							continue
+						}
+
 						break
 					}
 				}
@@ -295,7 +306,11 @@ func getSrcUrl(str string, response *http.Response) string {
 
 	src := ""
 
-	url, _ := url.ParseRequestURI(str)
+	url, err := url.ParseRequestURI(str)
+	if err != nil {
+		return ""
+	}
+
 	if url.Host == "" {
 		// points to origin site
 		src = fmt.Sprintf("%v://%v%v", response.Request.URL.Scheme, response.Request.Host, str)
@@ -305,5 +320,4 @@ func getSrcUrl(str string, response *http.Response) string {
 	}
 
 	return src
-
 }
