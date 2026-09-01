@@ -252,12 +252,12 @@ func parseHtml(response *http.Response) HtmlDetails {
 				for _, v := range n.Attr {
 					if v.Key == "href" && v.Val != "" {
 						href = getSrcUrl(v.Val, response)
-						if href == "" {
-							continue
-						}
-
 						break
 					}
+				}
+
+				if href == "" {
+					continue
 				}
 
 				if htmlData.AnchorTags == nil {
