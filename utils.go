@@ -4,13 +4,27 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
 	"golang.org/x/net/html"
 )
 
-type HeaderTag = map[string][]string
+var validOpenGraphProperties = []string{
+	"og:title",
+	"og:description",
+	"og:image",
+	"og:url",
+	"og:type",
+	"og:site_name",
+	"og:locale",
+	"og:audio",
+	"og:video",
+}
+
+type HeaderTag = map[string][]string  // key: h1,h2,etc value: all strings for each header
+type OpenGraphTag = map[string]string // key: "og:title",etc value: content string value
 
 type ScriptTag struct {
 	Src     *string `json:"src,omitempty"`
@@ -28,16 +42,17 @@ type Table struct {
 }
 
 type HtmlDetails struct {
-	Title         *string      `json:"title"`
-	Description   *string      `json:"description"`
-	HeaderTags    *HeaderTag   `json:"headerTags"`
-	SpanTags      *[]string    `json:"spanTags"`
-	ImgTags       *[]string    `json:"imageTags"`
-	ParagraphTags *[]string    `json:"paragraphTags"`
-	ScriptTags    *[]ScriptTag `json:"scriptTags"`
-	AnchorTags    *[]string    `json:"anchorTags"`
-	Lists         *ListTag     `json:"listTags"`
-	Tables        *[]Table     `json:"tableTags"`
+	Title         *string       `json:"title"`
+	Description   *string       `json:"description"`
+	HeaderTags    *HeaderTag    `json:"headerTags"`
+	SpanTags      *[]string     `json:"spanTags"`
+	ImgTags       *[]string     `json:"imageTags"`
+	ParagraphTags *[]string     `json:"paragraphTags"`
+	ScriptTags    *[]ScriptTag  `json:"scriptTags"`
+	AnchorTags    *[]string     `json:"anchorTags"`
+	Lists         *ListTag      `json:"listTags"`
+	Tables        *[]Table      `json:"tableTags"`
+	OpenGraphTags *OpenGraphTag `json:"openGraphTags"`
 }
 
 type SiteResponse struct {
@@ -119,19 +134,39 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 		case "meta":
 			{
-				if len(n.Attr) == 0 || htmlData.Description != nil {
+				if len(n.Attr) == 0 {
 					continue
 				}
 
-				// loop through all the attributes on this tag until you find name="description"
-				// then loop again until you find the contet="xxxx" attr (the actual description we want)
 				b := false
 				for _, v := range n.Attr {
-					if v.Key == "name" && v.Val == "description" {
+
+					// DESCRIPTION
+					if v.Key == "name" && v.Val == "description" && (htmlData.Description == nil || *htmlData.Description == "") {
 						for _, v2 := range n.Attr {
 							if v2.Key == "content" {
 								s := strings.TrimSpace(v2.Val)
 								htmlData.Description = &s
+								b = true
+								break
+							}
+						}
+					}
+					if b {
+						break
+					}
+
+					// OPENGRAPH
+					if slices.Contains(validOpenGraphProperties, v.Val) {
+						for _, v2 := range n.Attr {
+							if v2.Key == "content" {
+								// create the map if nil
+								if htmlData.OpenGraphTags == nil {
+									o := make(OpenGraphTag)
+									htmlData.OpenGraphTags = &o
+								}
+
+								(*htmlData.OpenGraphTags)[v.Val] = strings.TrimSpace(v2.Val)
 								b = true
 								break
 							}
@@ -368,7 +403,7 @@ func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
 	// is an actual absolute url... which can also contain more ? in the url
 
 	// example: "?site=https://google.com?search=hello&device=phone"
-	// the "device" url query for the site url query wont be picked up
+	// the "device" url query for the site url query wont be picked up with golang net/http for some reason
 
 	// find the index of "site="
 	index := strings.Index(urlStr, "site=")
