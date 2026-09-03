@@ -3,8 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>siteanalysis</title>
-  <meta name="description" content="Free API to scan HTML from any public URL. Returns JSON.">
+  <title>Siteanalysis — Free HTML scan API</title>
+  <meta name="description" content="Free API: GET https://siteanalysis.dev/api?site=https://example.com — returns the page’s HTML as JSON.">
+  <link rel="canonical" href="https://siteanalysis.dev/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://siteanalysis.dev/">
+  <meta property="og:title" content="siteanalysis">
+  <meta property="og:description" content="Free API to fetch any public page’s HTML as JSON. GET /api?site=https://example.com">
+  <meta property="og:site_name" content="siteanalysis">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="siteanalysis">
+  <meta name="twitter:description" content="Free API to fetch any public page’s HTML as JSON. GET /api?site=https://example.com">
+  <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
   <meta name="color-scheme" content="light dark">
   <script>
     (function () {
@@ -65,31 +79,41 @@
 
     .row {
       display: flex;
-      align-items: baseline;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: flex-end;
       gap: 12px;
       margin-bottom: 6px;
-    }
-    h1 {
-      font: 14px/1.4 Arial, Helvetica, sans-serif;
-      font-weight: 700;
-      margin: 0;
     }
     #themeToggle {
       appearance: none;
       border: 0;
       background: none;
       color: var(--muted);
-      font: inherit;
       cursor: pointer;
-      padding: 0;
-      text-decoration: underline;
-      text-underline-offset: 2px;
+      padding: 4px;
+      line-height: 0;
+      border-radius: 3px;
     }
     #themeToggle:hover { color: var(--fg); }
+    #themeToggle svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
 
     p { margin: 0 0 12px; color: var(--muted); }
     p.err { color: var(--err); }
+    p.api {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      color: var(--fg);
+      background: var(--fill);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 10px 12px;
+      overflow-x: auto;
+    }
+    p.api .label { color: var(--muted); font-family: Arial, Helvetica, sans-serif; margin-right: 8px; }
     #status:empty { display: none; }
 
     form {
@@ -247,6 +271,17 @@
     .b { color: var(--b); }
     .nl { color: var(--nl); }
 
+    footer {
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    footer a {
+      color: inherit;
+      text-underline-offset: 2px;
+    }
+    footer a:hover { color: var(--fg); }
+
     @media (max-width: 700px) {
       body { padding: 18px 20px 32px; }
     }
@@ -254,10 +289,10 @@
 </head>
 <body>
   <div class="row">
-    <h1>siteanalysis</h1>
-    <button type="button" id="themeToggle">dark</button>
+    <button type="button" id="themeToggle" aria-label="Toggle theme"></button>
   </div>
   <p>Free API. Paste a URL, get the page’s HTML back as JSON.</p>
+  <p class="api"><span class="label">API</span>GET https://siteanalysis.dev/api?site={SITE_URL}</p>
 
   <form id="scanForm">
     <input id="urlInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to scan">
@@ -280,6 +315,9 @@
     <summary>history</summary>
     <ul id="historyList"></ul>
   </details>
+  <footer>
+    <a href="https://awoldt.dev" target="_blank" rel="noopener">made by awoldt</a>
+  </footer>
 
   <script>
     (function () {
@@ -370,11 +408,15 @@
       function buildApiUrl(site) {
         return apiOrigin() + "/api?site=" + encodeURI(site);
       }
-      function themeLabel() {
-        themeBtn.textContent = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      function themeIcon() {
+        var dark = root.getAttribute("data-theme") === "dark";
+        themeBtn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+        themeBtn.innerHTML = dark
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 14.3A9 9 0 1 1 9.7 3a7 7 0 0 0 11.3 11.3z"/></svg>';
       }
 
-      themeLabel();
+      themeIcon();
       renderHistory();
 
       historyList.addEventListener("click", function (e) {
@@ -392,7 +434,7 @@
         var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
         root.setAttribute("data-theme", next);
         localStorage.setItem("theme", next);
-        themeLabel();
+        themeIcon();
       });
 
       function normalizeSite(value) {
