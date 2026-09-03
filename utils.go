@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +24,13 @@ var validOpenGraphProperties = []string{
 	"og:video",
 }
 
+var validFormChildren = []string{
+	"input",
+	"label",
+	"textarea",
+	"button",
+}
+
 type HeaderTag = map[string][]string  // key: h1,h2,etc value: all strings for each header
 type OpenGraphTag = map[string]string // key: "og:title",etc value: content string value
 
@@ -36,23 +44,40 @@ type ListTag struct {
 	UnorderedLists *[]string `json:"unorderedList"`
 }
 
-type Table struct {
+type TableTag struct {
 	Headers *[]string `json:"header"` // the header text of each column
 	Rows    *[]string `json:"rows"`
+}
+
+type FormChild struct {
+	Field       string  `json:"field"`
+	Type        *string `json:"type,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Id          *string `json:"id,omitempty"`
+	Value       *string `json:"value,omitempty"`
+	Placeholder *string `json:"placeholder,omitempty"`
+	Required    *bool   `json:"required,omitempty"`
+	Label       *string `json:"label,omitempty"`
+	For         *string `json:"for,omitempty"`
+}
+
+type FormTag struct {
+	Fields FormChild `json:"fields"`
 }
 
 type HtmlDetails struct {
 	Title         *string       `json:"title"`
 	Description   *string       `json:"description"`
-	HeaderTags    *HeaderTag    `json:"headerTags"`
-	SpanTags      *[]string     `json:"spanTags"`
-	ImgTags       *[]string     `json:"imageTags"`
-	ParagraphTags *[]string     `json:"paragraphTags"`
-	ScriptTags    *[]ScriptTag  `json:"scriptTags"`
-	AnchorTags    *[]string     `json:"anchorTags"`
-	Lists         *ListTag      `json:"listTags"`
-	Tables        *[]Table      `json:"tableTags"`
-	OpenGraphTags *OpenGraphTag `json:"openGraphTags"`
+	HeaderTags    *HeaderTag    `json:"headers"`
+	SpanTags      *[]string     `json:"spans"`
+	ImgTags       *[]string     `json:"images"`
+	ParagraphTags *[]string     `json:"paragraphs"`
+	ScriptTags    *[]ScriptTag  `json:"scripts"`
+	AnchorTags    *[]string     `json:"links"`
+	Lists         *ListTag      `json:"lists"`
+	Tables        *[]TableTag   `json:"tables"`
+	OpenGraphTags *OpenGraphTag `json:"openGraph"`
+	Forms         *[]FormTag    `json:"forms"`
 }
 
 type SiteResponse struct {
@@ -118,6 +143,69 @@ func parseHtml(response *http.Response) HtmlDetails {
 	for n := range html.Descendants() {
 
 		switch n.Data {
+
+		case "form":
+			{
+				// collect all the relevant tags within this form
+				for c := range n.Descendants() {
+					form := FormTag{}
+
+					if slices.Contains(validFormChildren, c.Data) {
+						if htmlData.Forms == nil {
+							htmlData.Forms = &[]FormTag{}
+						}
+
+						if c.Data == "input" || c.Data == "textarea" || c.Data == "button" {
+							form.Fields = FormChild{
+								Field: c.Data,
+							}
+							// look for type, name, required, placeholder, value
+							for _, attr := range c.Attr {
+								if attr.Key == "" || attr.Val == "" {
+									continue
+								}
+
+								switch attr.Key {
+								case "type":
+									form.Fields.Type = &attr.Val
+								case "name":
+									form.Fields.Name = &attr.Val
+								case "required":
+									b, err := strconv.ParseBool(attr.Val)
+									if err != nil {
+										continue
+									}
+									form.Fields.Required = &b
+								case "placeholder":
+									form.Fields.Placeholder = &attr.Val
+								case "value":
+									form.Fields.Value = &attr.Val
+								case "id":
+									form.Fields.Id = &attr.Val
+								}
+							}
+							*htmlData.Forms = append(*htmlData.Forms, form)
+						}
+
+						if c.Data == "label" {
+							form.Fields = FormChild{
+								Field: "label",
+							}
+							for _, attr := range c.Attr {
+								if attr.Key == "" || attr.Val == "" {
+									continue
+								}
+
+								if attr.Key == "for" {
+									form.Fields.For = &attr.Val
+								}
+							}
+							*htmlData.Forms = append(*htmlData.Forms, form)
+
+						}
+					}
+				}
+			}
 
 		case "title":
 			{
@@ -375,17 +463,17 @@ func parseHtml(response *http.Response) HtmlDetails {
 
 				if len(headers) > 0 {
 					if htmlData.Tables == nil {
-						htmlData.Tables = &[]Table{{Headers: &headers}}
+						htmlData.Tables = &[]TableTag{{Headers: &headers}}
 					} else {
-						*htmlData.Tables = append(*htmlData.Tables, Table{Headers: &headers})
+						*htmlData.Tables = append(*htmlData.Tables, TableTag{Headers: &headers})
 					}
 				}
 
 				if len(rows) > 0 {
 					if htmlData.Tables == nil {
-						htmlData.Tables = &[]Table{{Rows: &rows}}
+						htmlData.Tables = &[]TableTag{{Rows: &rows}}
 					} else {
-						*htmlData.Tables = append(*htmlData.Tables, Table{Rows: &rows})
+						*htmlData.Tables = append(*htmlData.Tables, TableTag{Rows: &rows})
 					}
 				}
 
