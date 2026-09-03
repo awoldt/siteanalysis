@@ -151,7 +151,16 @@
       text-underline-offset: 2px;
     }
     .bar button:hover { color: var(--fg); }
-    .bar .actions { display: flex; gap: 10px; }
+    .bar .actions { display: flex; align-items: center; gap: 10px; }
+    .bar label.wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      text-decoration: none;
+      user-select: none;
+    }
+    .bar label.wrap input { margin: 0; }
 
     .history {
       margin: 22px 0 0;
@@ -225,6 +234,12 @@
       max-height: 55vh;
       color: var(--fg);
     }
+    pre.wrap {
+      overflow-x: hidden;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
     .k { color: var(--k); }
     .s { color: var(--s); }
     .n { color: var(--n); }
@@ -253,6 +268,7 @@
     <div class="bar">
       <span id="meta"></span>
       <span class="actions">
+        <label class="wrap"><input type="checkbox" id="wrapToggle"> wrap</label>
         <button type="button" id="copyBtn">copy</button>
         <button type="button" id="rawBtn">raw</button>
       </span>
@@ -275,6 +291,7 @@
       var meta = document.getElementById("meta");
       var jsonOut = document.getElementById("jsonOut");
       var copyBtn = document.getElementById("copyBtn");
+      var wrapToggle = document.getElementById("wrapToggle");
       var themeBtn = document.getElementById("themeToggle");
       var historyEl = document.getElementById("history");
       var historyList = document.getElementById("historyList");
@@ -453,6 +470,10 @@
           .then(function () {
             btn.disabled = false;
           });
+      });
+
+      wrapToggle.addEventListener("change", function () {
+        jsonOut.classList.toggle("wrap", wrapToggle.checked);
       });
 
       copyBtn.addEventListener("click", function () {
