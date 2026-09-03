@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json/v2"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -11,6 +12,18 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		file, err := os.ReadFile("index.html")
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte("error while loading page :("))
+			return
+		}
+
+		w.Header().Set("content-type", "text/html")
+		w.Write(file)
+	})
+
+	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {
 		validUrl, err := extractAbsoluteSiteQuery(r.RequestURI)
 		if err != nil {
 			w.WriteHeader(400)
@@ -38,5 +51,5 @@ func main() {
 		w.Write(data)
 	})
 
-	http.ListenAndServe("127.0.0.1:3000", r)
+	http.ListenAndServe("127.0.0.1:8080", r)
 }

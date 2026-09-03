@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>siteanalysis</title>
+  <meta name="description" content="Free API to scan HTML from any public URL. Returns JSON.">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    (function () {
+      var t = localStorage.getItem("theme");
+      if (t !== "light" && t !== "dark") {
+        t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <style>
+    html[data-theme="light"] {
+      --bg: #fff;
+      --fg: #111;
+      --muted: #666;
+      --line: #ccc;
+      --fill: #f4f4f4;
+      --code-bg: #f4f4f4;
+      --btn: #111;
+      --btn-fg: #fff;
+      --k: #045;
+      --s: #a40;
+      --n: #04a;
+      --b: #808;
+      --nl: #666;
+      --err: #b00;
+    }
+    html[data-theme="dark"] {
+      --bg: #111;
+      --fg: #e8e8e8;
+      --muted: #999;
+      --line: #444;
+      --fill: #1c1c1c;
+      --code-bg: #1a1a1a;
+      --btn: #e8e8e8;
+      --btn-fg: #111;
+      --k: #8cf;
+      --s: #fc8;
+      --n: #9bf;
+      --b: #d8f;
+      --nl: #888;
+      --err: #f66;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    html { color-scheme: light dark; }
+    body {
+      font: 14px/1.45 Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 48px 48px;
+    }
+    a { color: inherit; }
+
+    .row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    h1 {
+      font: 14px/1.4 Arial, Helvetica, sans-serif;
+      font-weight: 700;
+      margin: 0;
+    }
+    #themeToggle {
+      appearance: none;
+      border: 0;
+      background: none;
+      color: var(--muted);
+      font: inherit;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    #themeToggle:hover { color: var(--fg); }
+
+    p { margin: 0 0 12px; color: var(--muted); }
+    p.err { color: var(--err); }
+    #status:empty { display: none; }
+
+    form {
+      display: flex;
+      gap: 6px;
+      margin: 0 0 10px;
+    }
+    input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      font: 15px Arial, Helvetica, sans-serif;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--fg);
+      border-radius: 3px;
+    }
+    input[type="text"]:focus { outline: 1px solid var(--fg); border-color: var(--fg); }
+    button.scan {
+      appearance: none;
+      border: 0;
+      background: var(--btn);
+      color: var(--btn-fg);
+      font: 15px Arial, Helvetica, sans-serif;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    button.scan:disabled { opacity: 0.5; cursor: default; }
+
+    .api {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .api code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      color: var(--fg);
+    }
+    .api .ex {
+      display: block;
+      margin-top: 6px;
+      word-break: break-all;
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid var(--fg);
+      opacity: 0.4;
+      margin: 2px 0 16px;
+    }
+
+    #result { display: none; }
+    #result.show { display: block; }
+
+    .bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .bar b { color: var(--fg); font-weight: 700; }
+    .bar button {
+      appearance: none;
+      border: 0;
+      background: none;
+      color: var(--muted);
+      font: inherit;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .bar button:hover { color: var(--fg); }
+    .bar .actions { display: flex; gap: 10px; }
+
+    pre {
+      margin: 0;
+      padding: 10px 12px;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font: 12px/1.45 Consolas, "Courier New", monospace;
+      overflow: auto;
+      max-height: 55vh;
+      color: var(--fg);
+    }
+    .k { color: var(--k); }
+    .s { color: var(--s); }
+    .n { color: var(--n); }
+    .b { color: var(--b); }
+    .nl { color: var(--nl); }
+
+    @media (max-width: 700px) {
+      body { padding: 18px 20px 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="row">
+    <h1>siteanalysis</h1>
+    <button type="button" id="themeToggle">dark</button>
+  </div>
+  <p>Free API. Paste a URL, get the page’s HTML back as JSON.</p>
+
+  <form id="scanForm">
+    <input id="urlInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to scan">
+    <button class="scan" type="submit" id="scanBtn">scan</button>
+  </form>
+  <p class="api">
+    From code, no API key. GET this URL and swap in the page you want:
+    <code class="ex" id="ex"></code>
+  </p>
+  <p id="status" role="status"></p>
+  <hr>
+  <div id="result">
+    <div class="bar">
+      <span id="meta"></span>
+      <span class="actions">
+        <button type="button" id="copyBtn">copy</button>
+        <button type="button" id="rawBtn">raw</button>
+      </span>
+    </div>
+    <pre id="jsonOut"></pre>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var form = document.getElementById("scanForm");
+      var input = document.getElementById("urlInput");
+      var btn = document.getElementById("scanBtn");
+      var statusEl = document.getElementById("status");
+      var result = document.getElementById("result");
+      var meta = document.getElementById("meta");
+      var jsonOut = document.getElementById("jsonOut");
+      var copyBtn = document.getElementById("copyBtn");
+      var themeBtn = document.getElementById("themeToggle");
+      var lastRaw = "";
+      var lastApiUrl = "";
+
+      function apiOrigin() {
+        return location.protocol === "file:" ? "http://127.0.0.1:8080" : location.origin;
+      }
+      function buildApiUrl(site) {
+        return apiOrigin() + "/api?site=" + encodeURI(site);
+      }
+      function themeLabel() {
+        themeBtn.textContent = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      }
+
+      themeLabel();
+      document.getElementById("ex").textContent = "GET " + apiOrigin() + "/api?site=https://example.com";
+
+      themeBtn.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+        themeLabel();
+      });
+
+      function normalizeSite(value) {
+        var u = (value || "").trim();
+        if (!u) return "";
+        if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(u)) u = "https://" + u;
+        var hash = u.indexOf("#");
+        if (hash !== -1) u = u.slice(0, hash);
+        return u;
+      }
+
+      function setStatus(text, isError) {
+        statusEl.textContent = text || "";
+        statusEl.className = isError ? "err" : "";
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      function highlight(json) {
+        if (json.length > 250000) return escapeHtml(json);
+        json = escapeHtml(json);
+        return json.replace(
+          /("(?:\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+          function (match) {
+            var cls = "n";
+            if (/^"/.test(match)) cls = /:$/.test(match) ? "k" : "s";
+            else if (/true|false/.test(match)) cls = "b";
+            else if (/null/.test(match)) cls = "nl";
+            return '<span class="' + cls + '">' + match + "</span>";
+          }
+        );
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var site = normalizeSite(input.value);
+        if (!site) {
+          setStatus("Enter an absolute URL.", true);
+          input.focus();
+          return;
+        }
+
+        var apiUrl = buildApiUrl(site);
+        btn.disabled = true;
+        setStatus("scanning…");
+        result.classList.remove("show");
+
+        fetch(apiUrl)
+          .then(function (res) {
+            return res.text().then(function (text) {
+              return { res: res, text: text };
+            });
+          })
+          .then(function (out) {
+            if (!out.res.ok) throw new Error(out.text || ("failed (" + out.res.status + ")"));
+            var data;
+            try { data = JSON.parse(out.text); }
+            catch (err) { throw new Error("API did not return JSON."); }
+            lastRaw = JSON.stringify(data, null, 2);
+            lastApiUrl = apiUrl;
+            jsonOut.innerHTML = highlight(lastRaw);
+            var bits = [];
+            if (data.status) bits.push("<b>" + escapeHtml(data.status) + "</b>");
+            if (data.responseTime) bits.push(escapeHtml(data.responseTime));
+            if (data.contentType) bits.push(escapeHtml(data.contentType));
+            meta.innerHTML = bits.join(" · ");
+            result.classList.add("show");
+            setStatus("");
+          })
+          .catch(function (err) {
+            setStatus(err.message || "scan failed", true);
+          })
+          .then(function () {
+            btn.disabled = false;
+          });
+      });
+
+      copyBtn.addEventListener("click", function () {
+        if (!lastRaw) return;
+        function done() {
+          copyBtn.textContent = "copied";
+          setTimeout(function () { copyBtn.textContent = "copy"; }, 1000);
+        }
+        function fallback() {
+          var ta = document.createElement("textarea");
+          ta.value = lastRaw;
+          ta.setAttribute("readonly", "");
+          ta.style.cssText = "position:fixed;left:-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); done(); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(lastRaw).then(done).catch(fallback);
+        } else fallback();
+      });
+
+      document.getElementById("rawBtn").addEventListener("click", function () {
+        if (lastApiUrl) window.open(lastApiUrl, "_blank", "noopener");
+      });
+    })();
+  </script>
+</body>
+</html>
