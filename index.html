@@ -169,6 +169,66 @@
     .bar button:hover { color: var(--fg); }
     .bar .actions { display: flex; gap: 10px; }
 
+    .history {
+      margin: 22px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .history summary {
+      cursor: pointer;
+      list-style: none;
+      display: inline-block;
+      user-select: none;
+      padding: 2px 0;
+    }
+    .history summary::-webkit-details-marker { display: none; }
+    .history summary::before {
+      content: "▸ ";
+      display: inline-block;
+      width: 1em;
+    }
+    .history[open] summary::before { content: "▾ "; }
+    .history summary:hover { color: var(--fg); }
+    .history ul {
+      list-style: none;
+      margin: 12px 0 0;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      max-height: 200px;
+      overflow: auto;
+    }
+    .history li + li { border-top: 1px solid var(--line); }
+    .history button {
+      appearance: none;
+      border: 0;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .history button:hover { background: var(--fill); }
+    .history .url {
+      color: var(--fg);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .history .meta {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+    .history[hidden] { display: none; }
+
     pre {
       margin: 0;
       padding: 10px 12px;
@@ -177,6 +237,7 @@
       border-radius: 3px;
       font: 12px/1.45 Consolas, "Courier New", monospace;
       overflow: auto;
+      overflow-anchor: none;
       max-height: 55vh;
       color: var(--fg);
     }
@@ -218,6 +279,10 @@
     </div>
     <pre id="jsonOut"></pre>
   </div>
+  <details class="history" id="history" hidden>
+    <summary>history</summary>
+    <ul id="historyList"></ul>
+  </details>
 
   <script>
     (function () {
@@ -231,8 +296,75 @@
       var jsonOut = document.getElementById("jsonOut");
       var copyBtn = document.getElementById("copyBtn");
       var themeBtn = document.getElementById("themeToggle");
+      var historyEl = document.getElementById("history");
+      var historyList = document.getElementById("historyList");
       var lastRaw = "";
       var lastApiUrl = "";
+      var HISTORY_KEY = "siteanalysis-history";
+
+      function escapeHtml(str) {
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      function loadHistory() {
+        try {
+          var data = sessionStorage.getItem(HISTORY_KEY);
+          return data ? JSON.parse(data) : [];
+        } catch (e) { return []; }
+      }
+      function saveHistory(items) {
+        sessionStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+      }
+      function cleanUrl(url) {
+        try {
+          var p = new URL(url);
+          var path = p.pathname === "/" ? "" : p.pathname;
+          return p.hostname + path + p.search;
+        } catch (e) { return url; }
+      }
+      function renderHistory() {
+        var items = loadHistory();
+        if (!items.length) {
+          historyEl.hidden = true;
+          historyList.innerHTML = "";
+          return;
+        }
+        historyEl.hidden = false;
+        historyList.innerHTML = items.map(function (item, i) {
+          return '<li><button type="button" data-i="' + i + '">' +
+            '<span class="url">' + escapeHtml(cleanUrl(item.url)) + '</span>' +
+            '<span class="meta">' + escapeHtml(String(item.statusCode)) + ' · ' + escapeHtml(item.responseTime) + '</span>' +
+            '</button></li>';
+        }).join("");
+      }
+      function addToHistory(data, apiUrl) {
+        var items = loadHistory();
+        var entry = {
+          url: data.url,
+          statusCode: data.statusCode,
+          responseTime: data.responseTime,
+          raw: JSON.stringify(data, null, 2),
+          apiUrl: apiUrl
+        };
+        items = items.filter(function (item) { return item.url !== entry.url; });
+        items.unshift(entry);
+        if (items.length > 25) items = items.slice(0, 25);
+        saveHistory(items);
+        renderHistory();
+      }
+      function showResult(data, apiUrl) {
+        lastRaw = JSON.stringify(data, null, 2);
+        lastApiUrl = apiUrl;
+        jsonOut.innerHTML = highlight(lastRaw);
+        var bits = [];
+        if (data.status) bits.push("<b>" + escapeHtml(data.status) + "</b>");
+        if (data.responseTime) bits.push(escapeHtml(data.responseTime));
+        if (data.contentType) bits.push(escapeHtml(data.contentType));
+        meta.innerHTML = bits.join(" · ");
+        result.classList.add("show");
+        resetJsonScroll();
+        setStatus("");
+      }
 
       function apiOrigin() {
         return location.protocol === "file:" ? "http://127.0.0.1:8080" : location.origin;
@@ -246,6 +378,18 @@
 
       themeLabel();
       document.getElementById("ex").textContent = "GET " + apiOrigin() + "/api?site=https://example.com";
+      renderHistory();
+
+      historyList.addEventListener("click", function (e) {
+        var btn = e.target.closest("button[data-i]");
+        if (!btn) return;
+        var item = loadHistory()[Number(btn.getAttribute("data-i"))];
+        if (!item) return;
+        input.value = item.url;
+        try {
+          showResult(JSON.parse(item.raw), item.apiUrl);
+        } catch (err) {}
+      });
 
       themeBtn.addEventListener("click", function () {
         var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
@@ -260,16 +404,15 @@
         if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(u)) u = "https://" + u;
         var hash = u.indexOf("#");
         if (hash !== -1) u = u.slice(0, hash);
-        return u;
+        try { var parsed = new URL(u); } catch (e) { return ""; }
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+        if (!parsed.hostname || !parsed.hostname.includes(".")) return "";
+        return parsed.href;
       }
 
       function setStatus(text, isError) {
         statusEl.textContent = text || "";
         statusEl.className = isError ? "err" : "";
-      }
-
-      function escapeHtml(str) {
-        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
       function highlight(json) {
@@ -287,11 +430,20 @@
         );
       }
 
+      function resetJsonScroll() {
+        jsonOut.scrollTop = 0;
+        jsonOut.scrollLeft = 0;
+        requestAnimationFrame(function () {
+          jsonOut.scrollTop = 0;
+          jsonOut.scrollLeft = 0;
+        });
+      }
+
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         var site = normalizeSite(input.value);
         if (!site) {
-          setStatus("Enter an absolute URL.", true);
+          setStatus("Enter a valid URL (e.g. https://example.com).", true);
           input.focus();
           return;
         }
@@ -299,6 +451,7 @@
         var apiUrl = buildApiUrl(site);
         btn.disabled = true;
         setStatus("scanning…");
+        resetJsonScroll();
         result.classList.remove("show");
 
         fetch(apiUrl)
@@ -312,16 +465,8 @@
             var data;
             try { data = JSON.parse(out.text); }
             catch (err) { throw new Error("API did not return JSON."); }
-            lastRaw = JSON.stringify(data, null, 2);
-            lastApiUrl = apiUrl;
-            jsonOut.innerHTML = highlight(lastRaw);
-            var bits = [];
-            if (data.status) bits.push("<b>" + escapeHtml(data.status) + "</b>");
-            if (data.responseTime) bits.push(escapeHtml(data.responseTime));
-            if (data.contentType) bits.push(escapeHtml(data.contentType));
-            meta.innerHTML = bits.join(" · ");
-            result.classList.add("show");
-            setStatus("");
+            addToHistory(data, apiUrl);
+            showResult(data, apiUrl);
           })
           .catch(function (err) {
             setStatus(err.message || "scan failed", true);
