@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Siteanalysis — Free HTML scan API</title>
-  <meta name="description" content="Free API: GET https://siteanalysis.dev/api?site=https://example.com — returns the page’s HTML as JSON.">
+  <title>Siteanalysis</title>
+  <meta name="description" content="Paste a URL to fetch a public page and get its HTML back as structured JSON.">
   <link rel="canonical" href="https://siteanalysis.dev/">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://siteanalysis.dev/">
   <meta property="og:title" content="siteanalysis">
-  <meta property="og:description" content="Free API to fetch any public page’s HTML as JSON. GET /api?site=https://example.com">
+  <meta property="og:description" content="Paste a URL to fetch a public page and get its HTML back as structured JSON.">
   <meta property="og:site_name" content="siteanalysis">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="siteanalysis">
-  <meta name="twitter:description" content="Free API to fetch any public page’s HTML as JSON. GET /api?site=https://example.com">
+  <meta name="twitter:description" content="Paste a URL to fetch a public page and get its HTML back as structured JSON.">
   <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="shortcut icon" href="/favicon.ico" />
@@ -51,7 +51,7 @@
       --fg: #e8e8e8;
       --muted: #999;
       --line: #444;
-      --fill: #1c1c1c;
+      --fill: #222;
       --code-bg: #1a1a1a;
       --btn: #e8e8e8;
       --btn-fg: #111;
@@ -82,7 +82,7 @@
       align-items: center;
       justify-content: flex-end;
       gap: 12px;
-      margin-bottom: 6px;
+      margin-bottom: 28px;
     }
     #themeToggle {
       appearance: none;
@@ -103,17 +103,17 @@
 
     p { margin: 0 0 12px; color: var(--muted); }
     p.err { color: var(--err); }
-    p.api {
-      font-family: Consolas, "Courier New", monospace;
+    p.hint {
       font-size: 13px;
-      color: var(--fg);
-      background: var(--fill);
-      border: 1px solid var(--line);
-      border-radius: 3px;
-      padding: 10px 12px;
-      overflow-x: auto;
+      color: var(--muted);
+      margin: 0 0 10px;
     }
-    p.api .label { color: var(--muted); font-family: Arial, Helvetica, sans-serif; margin-right: 8px; }
+    p.hint[hidden] { display: none; }
+    p.hint code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      color: var(--fg);
+    }
     #status:empty { display: none; }
 
     form {
@@ -187,66 +187,6 @@
     }
     .bar label.wrap input { margin: 0; }
 
-    .history {
-      margin: 22px 0 0;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .history summary {
-      cursor: pointer;
-      list-style: none;
-      display: inline-block;
-      user-select: none;
-      padding: 2px 0;
-    }
-    .history summary::-webkit-details-marker { display: none; }
-    .history summary::before {
-      content: "▸ ";
-      display: inline-block;
-      width: 1em;
-    }
-    .history[open] summary::before { content: "▾ "; }
-    .history summary:hover { color: var(--fg); }
-    .history ul {
-      list-style: none;
-      margin: 12px 0 0;
-      padding: 0;
-      border: 1px solid var(--line);
-      border-radius: 3px;
-      max-height: 200px;
-      overflow: auto;
-    }
-    .history li + li { border-top: 1px solid var(--line); }
-    .history button {
-      appearance: none;
-      border: 0;
-      background: none;
-      width: 100%;
-      text-align: left;
-      font: inherit;
-      color: inherit;
-      cursor: pointer;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .history button:hover { background: var(--fill); }
-    .history .url {
-      color: var(--fg);
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .history .meta {
-      flex-shrink: 0;
-      font-size: 12px;
-      font-family: Consolas, "Courier New", monospace;
-    }
-    .history[hidden] { display: none; }
-
     pre {
       margin: 0;
       padding: 10px 12px;
@@ -273,8 +213,31 @@
 
     footer {
       margin-top: 32px;
-      font-size: 12px;
+      font-size: 13px;
       color: var(--muted);
+      line-height: 1.5;
+    }
+    footer .about { margin: 0 0 18px; max-width: 42em; }
+    footer .endpoint {
+      margin: 0 0 20px;
+      max-width: 42em;
+    }
+    footer .endpoint .url {
+      display: block;
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: var(--fill);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      color: var(--fg);
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    footer .credit {
+      font-size: 12px;
+      margin: 0;
     }
     footer a {
       color: inherit;
@@ -291,13 +254,11 @@
   <div class="row">
     <button type="button" id="themeToggle" aria-label="Toggle theme"></button>
   </div>
-  <p>Free API. Paste a URL, get the page’s HTML back as JSON.</p>
-  <p class="api"><span class="label">API</span>GET https://siteanalysis.dev/api?site={SITE_URL}</p>
-
   <form id="scanForm">
     <input id="urlInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to scan">
     <button class="scan" type="submit" id="scanBtn">scan</button>
   </form>
+  <p id="fragmentNote" class="hint" hidden></p>
   <p id="status" role="status"></p>
   <hr>
   <div id="result">
@@ -311,12 +272,12 @@
     </div>
     <pre id="jsonOut"></pre>
   </div>
-  <details class="history" id="history" hidden>
-    <summary>history</summary>
-    <ul id="historyList"></ul>
-  </details>
   <footer>
-    <a href="https://awoldt.dev" target="_blank" rel="noopener">made by awoldt</a>
+    <p class="about"><b>Siteanalysis</b> is a free-to-use API that fetches public webpages and returns structured JSON of the page results. These results contain information from the header and body of the HTML page, along with details of the HTTP response headers of the request.</p>
+    <p class="endpoint">Paste this URL in a browser to get the same JSON:
+      <code class="url" id="apiExample"></code>
+    </p>
+    <p class="credit"><a href="https://awoldt.dev" target="_blank" rel="noopener">made by awoldt</a></p>
   </footer>
 
   <script>
@@ -332,62 +293,15 @@
       var copyBtn = document.getElementById("copyBtn");
       var wrapToggle = document.getElementById("wrapToggle");
       var themeBtn = document.getElementById("themeToggle");
-      var historyEl = document.getElementById("history");
-      var historyList = document.getElementById("historyList");
+      var fragmentNote = document.getElementById("fragmentNote");
+      var apiExample = document.getElementById("apiExample");
       var lastRaw = "";
       var lastApiUrl = "";
-      var HISTORY_KEY = "siteanalysis-history";
 
       function escapeHtml(str) {
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
-      function loadHistory() {
-        try {
-          var data = sessionStorage.getItem(HISTORY_KEY);
-          return data ? JSON.parse(data) : [];
-        } catch (e) { return []; }
-      }
-      function saveHistory(items) {
-        sessionStorage.setItem(HISTORY_KEY, JSON.stringify(items));
-      }
-      function cleanUrl(url) {
-        try {
-          var p = new URL(url);
-          var path = p.pathname === "/" ? "" : p.pathname;
-          return p.hostname + path + p.search;
-        } catch (e) { return url; }
-      }
-      function renderHistory() {
-        var items = loadHistory();
-        if (!items.length) {
-          historyEl.hidden = true;
-          historyList.innerHTML = "";
-          return;
-        }
-        historyEl.hidden = false;
-        historyList.innerHTML = items.map(function (item, i) {
-          return '<li><button type="button" data-i="' + i + '">' +
-            '<span class="url">' + escapeHtml(cleanUrl(item.url)) + '</span>' +
-            '<span class="meta">' + escapeHtml(String(item.statusCode)) + ' · ' + escapeHtml(item.responseTime) + '</span>' +
-            '</button></li>';
-        }).join("");
-      }
-      function addToHistory(data, apiUrl) {
-        var items = loadHistory();
-        var entry = {
-          url: data.url,
-          statusCode: data.statusCode,
-          responseTime: data.responseTime,
-          raw: JSON.stringify(data, null, 2),
-          apiUrl: apiUrl
-        };
-        items = items.filter(function (item) { return item.url !== entry.url; });
-        items.unshift(entry);
-        if (items.length > 25) items = items.slice(0, 25);
-        saveHistory(items);
-        renderHistory();
-      }
       function showResult(data, apiUrl) {
         lastRaw = JSON.stringify(data, null, 2);
         lastApiUrl = apiUrl;
@@ -408,6 +322,9 @@
       function buildApiUrl(site) {
         return apiOrigin() + "/api?site=" + encodeURI(site);
       }
+      function setApiExample() {
+        apiExample.textContent = apiOrigin() + "/api?site={SITE_URL}";
+      }
       function themeIcon() {
         var dark = root.getAttribute("data-theme") === "dark";
         themeBtn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
@@ -417,18 +334,7 @@
       }
 
       themeIcon();
-      renderHistory();
-
-      historyList.addEventListener("click", function (e) {
-        var btn = e.target.closest("button[data-i]");
-        if (!btn) return;
-        var item = loadHistory()[Number(btn.getAttribute("data-i"))];
-        if (!item) return;
-        input.value = item.url;
-        try {
-          showResult(JSON.parse(item.raw), item.apiUrl);
-        } catch (err) {}
-      });
+      setApiExample();
 
       themeBtn.addEventListener("click", function () {
         var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
@@ -447,6 +353,20 @@
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
         if (!parsed.hostname || !parsed.hostname.includes(".")) return "";
         return parsed.href;
+      }
+
+      function updateFragmentNote() {
+        var raw = (input.value || "").trim();
+        var hash = raw.indexOf("#");
+        if (hash === -1) {
+          fragmentNote.hidden = true;
+          fragmentNote.textContent = "";
+          return;
+        }
+        var withoutHash = normalizeSite(raw);
+        var scanned = withoutHash || raw.slice(0, hash);
+        fragmentNote.innerHTML = "The <code>#...</code> part of a URL is a fragment — it stays in the browser and is never sent over HTTP. This scan will request <code>" + escapeHtml(scanned) + "</code> instead.";
+        fragmentNote.hidden = false;
       }
 
       function setStatus(text, isError) {
@@ -478,8 +398,13 @@
         });
       }
 
+      input.addEventListener("input", updateFragmentNote);
+      input.addEventListener("change", updateFragmentNote);
+      updateFragmentNote();
+
       form.addEventListener("submit", function (e) {
         e.preventDefault();
+        updateFragmentNote();
         var site = normalizeSite(input.value);
         if (!site) {
           setStatus("Enter a valid URL (e.g. https://example.com).", true);
@@ -504,7 +429,6 @@
             var data;
             try { data = JSON.parse(out.text); }
             catch (err) { throw new Error("API did not return JSON."); }
-            addToHistory(data, apiUrl);
             showResult(data, apiUrl);
           })
           .catch(function (err) {
