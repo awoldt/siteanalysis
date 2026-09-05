@@ -45,6 +45,9 @@
       --b: #808;
       --nl: #666;
       --err: #b00;
+      --warn: #8a5a00;
+      --warn-bg: #fff8e8;
+      --warn-border: #e6c36a;
     }
     html[data-theme="dark"] {
       --bg: #111;
@@ -61,6 +64,9 @@
       --b: #d8f;
       --nl: #888;
       --err: #f66;
+      --warn: #fc8;
+      --warn-bg: #3d3018;
+      --warn-border: #8a6a20;
     }
 
     * { box-sizing: border-box; }
@@ -103,18 +109,34 @@
 
     p { margin: 0 0 12px; color: var(--muted); }
     p.err { color: var(--err); }
-    p.hint {
+    #status:empty { display: none; }
+
+    .alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      border-left: 3px solid var(--warn);
+      border-radius: 3px;
+      color: var(--warn);
       font-size: 13px;
-      color: var(--muted);
-      margin: 0 0 10px;
     }
-    p.hint[hidden] { display: none; }
-    p.hint code {
+    .alert[hidden] { display: none; }
+    .alert svg {
+      flex: 0 0 16px;
+      width: 16px;
+      height: 16px;
+      margin-top: 1px;
+    }
+    .alert p { margin: 0; color: inherit; }
+    .alert code {
       font-family: Consolas, "Courier New", monospace;
       font-size: 12px;
       color: var(--fg);
     }
-    #status:empty { display: none; }
 
     form {
       display: flex;
@@ -132,6 +154,13 @@
       border-radius: 3px;
     }
     input[type="text"]:focus { outline: 1px solid var(--fg); border-color: var(--fg); }
+    input[type="text"].warn {
+      border-color: var(--warn-border);
+    }
+    input[type="text"].warn:focus {
+      outline: 1px solid var(--warn);
+      border-color: var(--warn);
+    }
     button.scan {
       appearance: none;
       border: 0;
@@ -258,7 +287,10 @@
     <input id="urlInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to scan">
     <button class="scan" type="submit" id="scanBtn">scan</button>
   </form>
-  <p id="fragmentNote" class="hint" hidden></p>
+  <div id="fragmentNote" class="alert" hidden role="status">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <p id="fragmentNoteText"></p>
+  </div>
   <p id="status" role="status"></p>
   <hr>
   <div id="result">
@@ -294,6 +326,7 @@
       var wrapToggle = document.getElementById("wrapToggle");
       var themeBtn = document.getElementById("themeToggle");
       var fragmentNote = document.getElementById("fragmentNote");
+      var fragmentNoteText = document.getElementById("fragmentNoteText");
       var apiExample = document.getElementById("apiExample");
       var lastRaw = "";
       var lastApiUrl = "";
@@ -360,13 +393,15 @@
         var hash = raw.indexOf("#");
         if (hash === -1) {
           fragmentNote.hidden = true;
-          fragmentNote.textContent = "";
+          fragmentNoteText.textContent = "";
+          input.classList.remove("warn");
           return;
         }
         var withoutHash = normalizeSite(raw);
         var scanned = withoutHash || raw.slice(0, hash);
-        fragmentNote.innerHTML = "The <code>#...</code> part of a URL is a fragment — it stays in the browser and is never sent over HTTP. This scan will request <code>" + escapeHtml(scanned) + "</code> instead.";
+        fragmentNoteText.innerHTML = "The <code>#...</code> part of a URL is a fragment — it stays in the browser and is never sent over HTTP. This scan will request <code>" + escapeHtml(scanned) + "</code> instead.";
         fragmentNote.hidden = false;
+        input.classList.add("warn");
       }
 
       function setStatus(text, isError) {
