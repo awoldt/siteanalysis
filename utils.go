@@ -85,20 +85,25 @@ type SiteResponse struct {
 	UrlQuery      *url.Values `json:"urlQuery"`
 	Status        string      `json:"status"`
 	StatusCode    int         `json:"statusCode"`
-	ResponseTime  string      `json:"responseTime"`
+	FetchTime     string      `json:"fetchTime"` // time it took to fetch the external website
+	ParseTime     string      `json:"parsetime`  // time it took to parse the html and return a response
 	ContentLength *int64      `json:"contentLength"`
 	ContentType   *string     `json:"contentType"`
 	HtmlDetails   HtmlDetails `json:"html"`
 }
 
 func fetchSite(urlStr *url.URL) (SiteResponse, error) {
-	startTime := time.Now()
+	// this is the single function to call that will create the
+	// the payload that will be returned from api
+
 	rawUrl := urlStr.String()
 
+	fetchTime := time.Now()
 	res, err := http.Get(rawUrl)
 	if err != nil {
 		return SiteResponse{}, err
 	}
+	fetchTimeStr := time.Since(fetchTime).String()
 
 	defer res.Body.Close()
 
@@ -119,15 +124,18 @@ func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 		urlQuery = &v
 	}
 
+	parseTime := time.Now()
+
 	return SiteResponse{
 		Url:           rawUrl,
 		UrlQuery:      urlQuery,
 		StatusCode:    res.StatusCode,
 		Status:        res.Status,
-		ResponseTime:  time.Since(startTime).String(),
+		FetchTime:     fetchTimeStr,
 		ContentLength: contentLength,
 		ContentType:   contentType,
 		HtmlDetails:   parseHtml(res),
+		ParseTime:     time.Since(parseTime).String(),
 	}, nil
 }
 
