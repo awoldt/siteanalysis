@@ -80,16 +80,24 @@ type HtmlDetails struct {
 	Forms         *[]FormTag    `json:"forms"`
 }
 
+type RedirectDetails struct {
+	OriginalUrl    string `json:"originalUrl"`
+	Status         string `json:"status"`
+	StatusCode     int    `json:"statusCode"`
+	DestinationUrl string `json:"destinationUrl"`
+}
+
 type SiteResponse struct {
-	Url           string      `json:"url"`
-	UrlQuery      *url.Values `json:"urlQuery"`
-	Status        string      `json:"status"`
-	StatusCode    int         `json:"statusCode"`
-	FetchTime     string      `json:"fetchTime"` // time it took to fetch the external website
-	ParseTime     string      `json:"parsetime"` // time it took to parse the html and return a response
-	ContentLength *int64      `json:"contentLength"`
-	ContentType   *string     `json:"contentType"`
-	HtmlDetails   HtmlDetails `json:"html"`
+	Url             string           `json:"url"`
+	UrlQuery        *url.Values      `json:"urlQuery"`
+	Status          string           `json:"status"`
+	StatusCode      int              `json:"statusCode"`
+	RedirectDetails *RedirectDetails `json:"redirectDetails,omitempty"`
+	FetchTime       string           `json:"fetchTime"` // time it took to fetch the external website
+	ParseTime       string           `json:"parsetime"` // time it took to parse the html and return a response
+	ContentLength   *int64           `json:"contentLength"`
+	ContentType     *string          `json:"contentType"`
+	HtmlDetails     HtmlDetails      `json:"html"`
 }
 
 func fetchSite(urlStr *url.URL) (SiteResponse, error) {
@@ -124,18 +132,29 @@ func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 		urlQuery = &v
 	}
 
+	var redirectDetails *RedirectDetails
+	if res.Request.Response != nil {
+		redirectDetails = &RedirectDetails{
+			Status:         res.Request.Response.Status,
+			StatusCode:     res.Request.Response.StatusCode,
+			OriginalUrl:    rawUrl,
+			DestinationUrl: res.Request.URL.String(),
+		}
+	}
+
 	parseTime := time.Now()
 
 	return SiteResponse{
-		Url:           rawUrl,
-		UrlQuery:      urlQuery,
-		StatusCode:    res.StatusCode,
-		Status:        res.Status,
-		FetchTime:     fetchTimeStr,
-		ContentLength: contentLength,
-		ContentType:   contentType,
-		HtmlDetails:   parseHtml(res),
-		ParseTime:     time.Since(parseTime).String(),
+		Url:             rawUrl,
+		UrlQuery:        urlQuery,
+		StatusCode:      res.StatusCode,
+		RedirectDetails: redirectDetails,
+		Status:          res.Status,
+		FetchTime:       fetchTimeStr,
+		ContentLength:   contentLength,
+		ContentType:     contentType,
+		HtmlDetails:     parseHtml(res),
+		ParseTime:       time.Since(parseTime).String(),
 	}, nil
 }
 
