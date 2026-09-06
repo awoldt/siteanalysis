@@ -299,6 +299,7 @@
       <span class="actions">
         <label class="wrap"><input type="checkbox" id="wrapToggle"> wrap</label>
         <button type="button" id="copyBtn">copy</button>
+        <button type="button" id="downloadBtn">download</button>
         <button type="button" id="rawBtn">raw</button>
       </span>
     </div>
@@ -323,6 +324,7 @@
       var meta = document.getElementById("meta");
       var jsonOut = document.getElementById("jsonOut");
       var copyBtn = document.getElementById("copyBtn");
+      var downloadBtn = document.getElementById("downloadBtn");
       var wrapToggle = document.getElementById("wrapToggle");
       var themeBtn = document.getElementById("themeToggle");
       var fragmentNote = document.getElementById("fragmentNote");
@@ -330,14 +332,26 @@
       var apiExample = document.getElementById("apiExample");
       var lastRaw = "";
       var lastApiUrl = "";
+      var lastFilename = "scan_html.json";
 
       function escapeHtml(str) {
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
+      function jsonFilename(siteUrl) {
+        try {
+          var host = new URL(siteUrl).hostname.replace(/^www\./, "");
+          if (!host) return "scan_html.json";
+          return host.replace(/[^a-zA-Z0-9.-]+/g, "-") + "_html.json";
+        } catch (e) {
+          return "scan_html.json";
+        }
+      }
+
       function showResult(data, apiUrl) {
         lastRaw = JSON.stringify(data, null, 2);
         lastApiUrl = apiUrl;
+        lastFilename = jsonFilename(data.url || apiUrl);
         jsonOut.innerHTML = highlight(lastRaw);
         var bits = [];
         if (data.status) bits.push("<b>" + escapeHtml(data.status) + "</b>");
@@ -443,6 +457,12 @@
         var site = normalizeSite(input.value);
         if (!site) {
           setStatus("Enter a valid URL (e.g. https://example.com).", true);
+          lastRaw = "";
+          lastApiUrl = "";
+          lastFilename = "scan_html.json";
+          jsonOut.innerHTML = "";
+          meta.innerHTML = "";
+          result.classList.remove("show");
           input.focus();
           return;
         }
@@ -497,6 +517,19 @@
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(lastRaw).then(done).catch(fallback);
         } else fallback();
+      });
+
+      downloadBtn.addEventListener("click", function () {
+        if (!lastRaw) return;
+        var url = URL.createObjectURL(new Blob([lastRaw], { type: "application/json" }));
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = lastFilename || "scan_html.json";
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 0);
       });
 
       document.getElementById("rawBtn").addEventListener("click", function () {
