@@ -541,7 +541,7 @@ func extractAbsoluteSiteQuery(urlStr string) (*url.URL, error) {
 func getSrcUrl(str string, response *http.Response) string {
 	// this function will take in either an absolute or relative url
 	// and return an absolute
-	// its used for getting think like img src and script src urls...
+	// its used for getting things like img src and script src urls...
 
 	// for example, if i parse https://google.com and this has a script tag that
 	// loads js from a differnet domain, the result for the script tag src would be
