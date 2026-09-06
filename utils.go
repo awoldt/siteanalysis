@@ -73,7 +73,7 @@ type HtmlDetails struct {
 	ImgTags       *[]string     `json:"images"`
 	ParagraphTags *[]string     `json:"paragraphs"`
 	ScriptTags    *[]ScriptTag  `json:"scripts"`
-	AnchorTags    *[]string     `json:"links"`
+	LinkTags      *[]string     `json:"links"`
 	Lists         *ListTag      `json:"lists"`
 	Tables        *[]TableTag   `json:"tables"`
 	OpenGraphTags *OpenGraphTag `json:"openGraph"`
@@ -420,10 +420,10 @@ func parseHtml(response *http.Response) HtmlDetails {
 					continue
 				}
 
-				if htmlData.AnchorTags == nil {
-					htmlData.AnchorTags = &[]string{href}
+				if htmlData.LinkTags == nil {
+					htmlData.LinkTags = &[]string{href}
 				} else {
-					*htmlData.AnchorTags = append(*htmlData.AnchorTags, href)
+					*htmlData.LinkTags = append(*htmlData.LinkTags, href)
 				}
 			}
 
