@@ -86,7 +86,7 @@ type SiteResponse struct {
 	Status        string      `json:"status"`
 	StatusCode    int         `json:"statusCode"`
 	FetchTime     string      `json:"fetchTime"` // time it took to fetch the external website
-	ParseTime     string      `json:"parsetime`  // time it took to parse the html and return a response
+	ParseTime     string      `json:"parsetime"` // time it took to parse the html and return a response
 	ContentLength *int64      `json:"contentLength"`
 	ContentType   *string     `json:"contentType"`
 	HtmlDetails   HtmlDetails `json:"html"`
