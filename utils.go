@@ -556,7 +556,7 @@ func getSrcUrl(str string, response *http.Response) string {
 
 	if url.Host == "" {
 		// points to origin site
-		src = fmt.Sprintf("%v://%v%v", response.Request.URL.Scheme, response.Request.Host, str)
+		src = fmt.Sprintf("%v://%v%v", response.Request.URL.Scheme, response.Request.URL.Host, str)
 	} else {
 		// points to external site
 		src = fmt.Sprintf("%v://%v%v", url.Scheme, url.Host, url.Path)
