@@ -186,6 +186,7 @@ func parseHtml(response *http.Response) HtmlDetails {
 							form.Fields = FormChild{
 								Field: c.Data,
 							}
+
 							// look for type, name, required, placeholder, value
 							for _, attr := range c.Attr {
 								if attr.Key == "" || attr.Val == "" {
@@ -211,6 +212,14 @@ func parseHtml(response *http.Response) HtmlDetails {
 									form.Fields.Id = &attr.Val
 								}
 							}
+
+							// add text node inside button to button field value
+							if c.Data == "button" && c.FirstChild != nil && c.FirstChild.Data != "" {
+								t := extractWords(c)
+								s := strings.Join(t, " ")
+								form.Fields.Value = &s
+							}
+
 							*htmlData.Forms = append(*htmlData.Forms, form)
 						}
 
