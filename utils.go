@@ -441,7 +441,7 @@ func parseHtml(response *http.Response) HtmlDetails {
 				// loop through all the lis of the list
 				for li := range n.Descendants() {
 					if li.Data == "li" {
-						words := extractWords(n)
+						words := extractWords(li)
 						if len(words) == 0 {
 							continue
 						}
