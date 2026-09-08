@@ -100,14 +100,23 @@ type SiteResponse struct {
 	HtmlDetails     HtmlDetails      `json:"html"`
 }
 
+var httpClient http.Client
+
 func fetchSite(urlStr *url.URL) (SiteResponse, error) {
 	// this is the single function to call that will create the
 	// the payload that will be returned from api
 
 	rawUrl := urlStr.String()
 
+	req, err := http.NewRequest("GET", rawUrl, nil)
+	if err != nil {
+		return SiteResponse{}, err
+	}
+	// set a customer header to prevent some sites from throwing 403s
+	req.Header.Set("User-Agent", "siteanalysis.dev/1.0 (+https://siteanalysis.dev)")
+
 	fetchTime := time.Now()
-	res, err := http.Get(rawUrl)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return SiteResponse{}, err
 	}
