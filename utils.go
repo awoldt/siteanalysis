@@ -79,6 +79,7 @@ type HtmlDetails struct {
 	OpenGraphTags *OpenGraphTag `json:"openGraph"`
 	Forms         *[]FormTag    `json:"forms"`
 	CanonicalLink *string       `json:"canonicalLink"`
+	Language      *string       `json:"lang"`
 }
 
 type RedirectDetails struct {
@@ -180,6 +181,21 @@ func parseHtml(response *http.Response) HtmlDetails {
 	for n := range html.Descendants() {
 
 		switch n.Data {
+		case "html":
+			{
+				if (htmlData.Language != nil && *htmlData.Language != "") || len(n.Attr) == 0 {
+					continue
+				}
+
+				for _, attr := range n.Attr {
+					if attr.Key == "lang" && attr.Val != "" {
+						if htmlData.Language == nil {
+							htmlData.Language = &attr.Val
+							break
+						}
+					}
+				}
+			}
 
 		// this is for the canonical link
 		case "link":
