@@ -78,6 +78,7 @@ type HtmlDetails struct {
 	Tables        *[]TableTag   `json:"tables"`
 	OpenGraphTags *OpenGraphTag `json:"openGraph"`
 	Forms         *[]FormTag    `json:"forms"`
+	CanonicalLink *string       `json:"canonicalLink"`
 }
 
 type RedirectDetails struct {
@@ -179,6 +180,35 @@ func parseHtml(response *http.Response) HtmlDetails {
 	for n := range html.Descendants() {
 
 		switch n.Data {
+
+		// this is for the canonical link
+		case "link":
+			{
+				if (htmlData.CanonicalLink != nil && *htmlData.CanonicalLink != "") || len(n.Attr) == 0 {
+					continue
+				}
+
+				b := false
+
+				for _, attr := range n.Attr {
+					if b {
+						break
+					}
+
+					if attr.Key == "rel" && attr.Val == "canonical" {
+						for _, attr2 := range n.Attr {
+							if attr2.Key == "href" && attr2.Val != "" {
+								if htmlData.CanonicalLink == nil {
+									htmlData.CanonicalLink = &attr2.Val
+								}
+								b = true
+								break
+							}
+						}
+					}
+				}
+
+			}
 
 		case "form":
 			{
