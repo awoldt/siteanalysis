@@ -33,15 +33,11 @@ func collectPageLinks(url *url.URL) ([]string, error) {
 	// this function will parse the entirety of a html page
 	// only to find all the <a> tags
 
-	// it will loop until it finds all <a> tags across all
-	// unique pages
-
-	basePath := fmt.Sprintf("%v://%v", url.Scheme, url.Host)
+	basePath := getRootUrl(url)
 
 	var uniqueLinks []string
-	var urlToFetch = url.String()
 
-	req, err := http.NewRequest("GET", urlToFetch, nil)
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +66,8 @@ func collectPageLinks(url *url.URL) ([]string, error) {
 					}
 
 					invalidPrefix := false
-					// make sure not some stupid injected link
+					// make sure not some stupid injected links
+					// must be a link that is originally placed by the site
 					for _, v := range skipPrefixes {
 						if strings.HasPrefix(link, v) {
 							invalidPrefix = true
@@ -93,4 +90,11 @@ func collectPageLinks(url *url.URL) ([]string, error) {
 	}
 
 	return uniqueLinks, nil
+}
+
+func getRootUrl(urlStr *url.URL) string {
+	// gets the root of a site url
+	// ex: https://awoldt.dev/articles/not-using-ai-made-me-happy-again -> https://awoldt.dev
+
+	return fmt.Sprintf("%v://%v", urlStr.Scheme, urlStr.Host)
 }

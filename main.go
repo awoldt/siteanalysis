@@ -77,15 +77,19 @@ func main() {
 			return
 		}
 
+		// make sure we start scanning at the ROOT of the url passed
+		rootUrl := getRootUrl(validUrl)
+
 		// recursively scan each page in the site and return
 		// as many unique internal links as possible
 		collectedLinks := []string{}
 		scannedUrls := []string{}
-		urlToScan := validUrl.String() // start with the url provided in the query param
+		urlToScan := rootUrl // start with the url provided in the query param
 
 		i := 0
+		maxDepth := 100
 		for {
-			if i > 100 {
+			if i > maxDepth {
 				break
 			}
 
@@ -97,7 +101,13 @@ func main() {
 			}
 			i++
 			scannedUrls = append(scannedUrls, urlToScan)
-			collectedLinks = append(collectedLinks, links...)
+
+			// only append links that are NOT already stored
+			for _, v := range links {
+				if !slices.Contains(collectedLinks, v) {
+					collectedLinks = append(collectedLinks, v)
+				}
+			}
 
 			// after scanning all the links for a page
 			// find a url that has not been scanned and collect
