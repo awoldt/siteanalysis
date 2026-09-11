@@ -4,6 +4,7 @@ import (
 	"encoding/json/v2"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -65,6 +66,25 @@ func main() {
 
 		w.WriteHeader(200)
 		w.Write(data)
+	})
+
+	r.Get("/api/sitemap", func(w http.ResponseWriter, r *http.Request) {
+		validUrl, err := extractAbsoluteSiteQuery(r.RequestURI)
+		if err != nil {
+			w.WriteHeader(400)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		links, err := collectSiteLinks(validUrl)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		w.WriteHeader(200)
+		w.Write([]byte(strings.Join(links, "\n")))
 	})
 
 	http.ListenAndServe(":8080", r)
