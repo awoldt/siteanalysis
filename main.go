@@ -4,6 +4,7 @@ import (
 	"encoding/json/v2"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -76,15 +77,46 @@ func main() {
 			return
 		}
 
-		links, err := collectSiteLinks(validUrl)
-		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(err.Error()))
-			return
+		// recursively scan each page in the site and return
+		// as many unique internal links as possible
+		collectedLinks := []string{}
+		scannedUrls := []string{}
+		urlToScan := validUrl.String() // start with the url provided in the query param
+
+		i := 0
+		for {
+			if i > 100 {
+				break
+			}
+
+			links, err := collectPageLinks(validUrl)
+			if err != nil {
+				w.WriteHeader(500)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			i++
+			scannedUrls = append(scannedUrls, urlToScan)
+			collectedLinks = append(collectedLinks, links...)
+
+			// after scanning all the links for a page
+			// find a url that has not been scanned and collect
+			// links from that page next
+			b := true
+			for _, v := range collectedLinks {
+				if !slices.Contains(scannedUrls, v) {
+					urlToScan = v
+					b = false
+					break
+				}
+			}
+			if b {
+				break
+			}
 		}
 
 		w.WriteHeader(200)
-		w.Write([]byte(strings.Join(links, "\n")))
+		w.Write([]byte(strings.Join(collectedLinks, "\n")))
 	})
 
 	http.ListenAndServe(":8080", r)
