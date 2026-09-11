@@ -98,3 +98,19 @@ func getRootUrl(urlStr *url.URL) string {
 
 	return fmt.Sprintf("%v://%v", urlStr.Scheme, urlStr.Host)
 }
+
+func generateSitemapString(links []string) string {
+	var str strings.Builder
+
+	str.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+	str.WriteString("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">")
+
+	for _, v := range links {
+		str.WriteString("<url>")
+		str.WriteString(fmt.Sprintf("<loc>%v</loc>", v))
+		str.WriteString("</url>")
+	}
+
+	str.WriteString("</urlset>")
+	return str.String()
+}

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"slices"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -56,8 +55,6 @@ func main() {
 			return
 		}
 
-		w.Header().Set("content-type", "application/json")
-
 		data, err := json.Marshal(siteResponse)
 		if err != nil {
 			w.WriteHeader(500)
@@ -65,7 +62,7 @@ func main() {
 			return
 		}
 
-		w.WriteHeader(200)
+		w.Header().Set("content-type", "application/json")
 		w.Write(data)
 	})
 
@@ -82,7 +79,7 @@ func main() {
 
 		// recursively scan each page in the site and return
 		// as many unique internal links as possible
-		collectedLinks := []string{}
+		collectedLinks := []string{rootUrl}
 		scannedUrls := []string{}
 		urlToScan := rootUrl // start with the url provided in the query param
 
@@ -125,8 +122,10 @@ func main() {
 			}
 		}
 
-		w.WriteHeader(200)
-		w.Write([]byte(strings.Join(collectedLinks, "\n")))
+		sitemapStr := generateSitemapString(collectedLinks)
+
+		w.Header().Add("content-type", "application/xml")
+		w.Write([]byte(sitemapStr))
 	})
 
 	http.ListenAndServe(":8080", r)
