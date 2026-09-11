@@ -5,9 +5,29 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 
 	"golang.org/x/net/html"
 )
+
+var skipPrefixes = []string{
+	"/cdn-cgi/",
+	"/wp-admin/",
+	"/wp-login",
+	"/wp-json/",
+	"/wp-includes/",
+	"/xmlrpc.php",
+	"/cgi-bin/",
+	"/.well-known/",
+	"/feed/",
+	"/comments/feed/",
+	"/author/",
+	"/tag/",
+	"/category/",
+	"/search/",
+	"/wp-content/plugins/",
+	"/wp-content/themes/",
+}
 
 func collectSiteLinks(url *url.URL) ([]string, error) {
 	// this function will parse the entirety of a html page
@@ -20,7 +40,7 @@ func collectSiteLinks(url *url.URL) ([]string, error) {
 
 	var uniquePages []string = []string{url.String()}
 	var urlToFetch = url.String()
-	var maxPageScans = 25
+	var maxPageScans = 5
 
 	// we will loop and parse the entire site across all pages
 	// until all the unique links have been collected
@@ -50,13 +70,29 @@ func collectSiteLinks(url *url.URL) ([]string, error) {
 		for n := range html.Descendants() {
 			if n.Data == "a" {
 				for _, attr := range n.Attr {
-					if attr.Key == "href" && attr.Val != "" {
+					link := attr.Val
+
+					if attr.Key == "href" && link != "" {
+						println(link)
+
 						// we only want relative urls
-						if attr.Val[0] != '/' {
+						if link[0] != '/' {
 							continue
 						}
 
-						s := basePath + attr.Val
+						invalidPrefix := false
+						// make sure not some stupid injected link
+						for _, v := range skipPrefixes {
+							if strings.HasPrefix(link, v) {
+								invalidPrefix = true
+								break
+							}
+						}
+						if invalidPrefix {
+							continue
+						}
+
+						s := basePath + link
 
 						// make sure we have not already added this link
 						if !slices.Contains(uniquePages, s) {
