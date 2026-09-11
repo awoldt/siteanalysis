@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json/v2"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
 
@@ -20,6 +21,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
+	// home (html page)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		file, err := os.ReadFile("index.html")
 		if err != nil {
@@ -90,7 +92,14 @@ func main() {
 				break
 			}
 
-			links, err := collectPageLinks(validUrl)
+			u, err := url.Parse(urlToScan)
+			if err != nil {
+				w.WriteHeader(500)
+				w.Write([]byte(err.Error()))
+				return
+			}
+
+			links, err := collectPageLinks(u)
 			if err != nil {
 				w.WriteHeader(500)
 				w.Write([]byte(err.Error()))
