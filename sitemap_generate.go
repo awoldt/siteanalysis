@@ -114,3 +114,14 @@ func generateSitemapString(links []string) string {
 	str.WriteString("</urlset>")
 	return str.String()
 }
+
+func stripAmpersand(s string) string {
+	// xml doesnt allow "&" in the return
+	// strip each "&" and replace with "&amp;"
+
+	if strings.Contains(s, "&") {
+		return strings.ReplaceAll(s, "&", "&amp;")
+	} else {
+		return s
+	}
+}

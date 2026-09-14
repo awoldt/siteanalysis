@@ -111,7 +111,8 @@ func main() {
 			// only append links that are NOT already stored
 			for _, v := range links {
 				if !slices.Contains(collectedLinks, v) {
-					collectedLinks = append(collectedLinks, v)
+					cleanLink := stripAmpersand(v)
+					collectedLinks = append(collectedLinks, cleanLink)
 				}
 			}
 
