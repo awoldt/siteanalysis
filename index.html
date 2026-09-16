@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Siteanalysis</title>
-  <meta name="description" content="Paste a URL to fetch a public page and get its HTML back as structured JSON.">
+  <title>Siteanalysis — HTML parser and XML sitemap generator</title>
+  <meta name="description" content="Free API to parse public webpages into structured JSON (HTML, headers, and HTTP response details) or crawl a site and generate an XML sitemap. No API keys required.">
   <link rel="canonical" href="https://siteanalysis.dev/">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://siteanalysis.dev/">
-  <meta property="og:title" content="siteanalysis">
-  <meta property="og:description" content="Paste a URL to fetch a public page and get its HTML back as structured JSON.">
+  <meta property="og:title" content="siteanalysis — HTML parser and XML sitemap generator">
+  <meta property="og:description" content="Free API to parse public webpages into structured JSON or crawl a site and generate an XML sitemap. No API keys required.">
   <meta property="og:site_name" content="siteanalysis">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="siteanalysis">
-  <meta name="twitter:description" content="Paste a URL to fetch a public page and get its HTML back as structured JSON.">
+  <meta name="twitter:title" content="siteanalysis — HTML parser and XML sitemap generator">
+  <meta name="twitter:description" content="Free API to parse public webpages into structured JSON or crawl a site and generate an XML sitemap. No API keys required.">
   <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="shortcut icon" href="/favicon.ico" />
@@ -86,9 +86,29 @@
     .row {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: space-between;
       gap: 12px;
       margin-bottom: 28px;
+    }
+    .tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tabs button {
+      appearance: none;
+      border: 0;
+      background: none;
+      color: var(--muted);
+      font: inherit;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 3px;
+    }
+    .tabs button:hover { color: var(--fg); }
+    .tabs button.active {
+      color: var(--fg);
+      font-weight: 700;
     }
     #themeToggle {
       appearance: none;
@@ -109,7 +129,7 @@
 
     p { margin: 0 0 12px; color: var(--muted); }
     p.err { color: var(--err); }
-    #status:empty { display: none; }
+    .status:empty { display: none; }
 
     .alert {
       display: flex;
@@ -180,8 +200,8 @@
       margin: 2px 0 16px;
     }
 
-    #result { display: none; }
-    #result.show { display: block; }
+    .result { display: none; }
+    .result.show { display: block; }
 
     .bar {
       display: flex;
@@ -246,11 +266,16 @@
       color: var(--muted);
       line-height: 1.5;
     }
-    footer .about { margin: 0 0 18px; max-width: 42em; }
+    footer .about {
+      margin: 56px auto 18px;
+      max-width: 42em;
+      text-align: center;
+    }
     footer .endpoint {
       margin: 0 0 20px;
       max-width: 42em;
     }
+    footer .endpoint[hidden] { display: none; }
     footer .endpoint .url {
       display: block;
       margin-top: 8px;
@@ -267,7 +292,9 @@
     footer .credit {
       font-size: 12px;
       margin: 0;
+      text-align: center;
     }
+    footer .credit span { margin: 0 6px; color: var(--line); }
     footer a {
       color: inherit;
       text-underline-offset: 2px;
@@ -281,97 +308,102 @@
 </head>
 <body>
   <div class="row">
+    <nav class="tabs" aria-label="Tools">
+      <button type="button" id="tabHtml" class="active" aria-current="page">html</button>
+      <button type="button" id="tabSitemap">sitemap</button>
+    </nav>
     <button type="button" id="themeToggle" aria-label="Toggle theme"></button>
   </div>
-  <form id="scanForm">
-    <input id="urlInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to scan">
-    <button class="scan" type="submit" id="scanBtn">scan</button>
-  </form>
-  <div id="fragmentNote" class="alert" hidden role="status">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <p id="fragmentNoteText"></p>
-  </div>
-  <p id="status" role="status"></p>
-  <hr>
-  <div id="result">
-    <div class="bar">
-      <span id="meta"></span>
-      <span class="actions">
-        <label class="wrap"><input type="checkbox" id="wrapToggle"> wrap</label>
-        <button type="button" id="copyBtn">copy</button>
-        <button type="button" id="downloadBtn">download</button>
-        <button type="button" id="rawBtn">raw</button>
-      </span>
+
+  <section id="pageHtml">
+    <form id="htmlForm">
+      <input id="htmlInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to scan">
+      <button class="scan" type="submit" id="htmlBtn">scan</button>
+    </form>
+    <div id="htmlFragmentNote" class="alert" hidden role="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <p id="htmlFragmentNoteText"></p>
     </div>
-    <pre id="jsonOut"></pre>
-  </div>
+    <p id="htmlStatus" class="status" role="status"></p>
+    <hr>
+    <div id="htmlResult" class="result">
+      <div class="bar">
+        <span id="htmlMeta"></span>
+        <span class="actions">
+          <label class="wrap"><input type="checkbox" id="htmlWrap"> wrap</label>
+          <button type="button" id="htmlCopy">copy</button>
+          <button type="button" id="htmlDownload">download</button>
+          <button type="button" id="htmlRaw">raw</button>
+        </span>
+      </div>
+      <pre id="htmlOut"></pre>
+    </div>
+  </section>
+
+  <section id="pageSitemap" hidden>
+    <form id="sitemapForm">
+      <input id="sitemapInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to generate a sitemap from">
+      <button class="scan" type="submit" id="sitemapBtn">generate</button>
+    </form>
+    <div id="sitemapFragmentNote" class="alert" hidden role="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <p id="sitemapFragmentNoteText"></p>
+    </div>
+    <p id="sitemapStatus" class="status" role="status"></p>
+    <hr>
+    <div id="sitemapResult" class="result">
+      <div class="bar">
+        <span id="sitemapMeta"></span>
+        <span class="actions">
+          <label class="wrap"><input type="checkbox" id="sitemapWrap"> wrap</label>
+          <button type="button" id="sitemapCopy">copy</button>
+          <button type="button" id="sitemapDownload">download</button>
+          <button type="button" id="sitemapRaw">raw</button>
+        </span>
+      </div>
+      <pre id="sitemapOut"></pre>
+    </div>
+  </section>
+
   <footer>
-    <p class="about"><b>Siteanalysis</b> is a free-to-use API that fetches public webpages and returns structured JSON of the page results. These results contain information from the header and body of the HTML page, along with details of the HTTP response headers of the request.</p>
-    <p class="endpoint">Paste this URL in a browser to get the same JSON:
-      <code class="url" id="apiExample"></code>
+    <p class="endpoint" id="htmlEndpoint">Returns structured JSON of the page's HTML and HTTP headers:
+      <code class="url" id="apiHtmlExample"></code>
     </p>
-    <p class="credit"><a href="https://awoldt.dev" target="_blank" rel="noopener">made by awoldt</a></p>
+    <p class="endpoint" id="sitemapEndpoint" hidden>Crawls the site from its root and returns an XML sitemap of the unique internal links it finds:
+      <code class="url" id="apiSitemapExample"></code>
+    </p>
+    <p class="about"><b>Siteanalysis</b> is a free-to-use API that can parse HTML and crawl site links to generate sitemaps. The endpoints are simple GET requests that can be hit through a web browser, or requested in backend applications, either works. Results are returned in JSON and XML formats.</p>
+
+    <p class="credit"><a href="https://awoldt.dev" target="_blank" rel="noopener">made by awoldt</a><span>·</span><a href="https://github.com/awoldt/siteanalysis" target="_blank" rel="noopener">source code</a></p>
   </footer>
 
   <script>
     (function () {
       var root = document.documentElement;
-      var form = document.getElementById("scanForm");
-      var input = document.getElementById("urlInput");
-      var btn = document.getElementById("scanBtn");
-      var statusEl = document.getElementById("status");
-      var result = document.getElementById("result");
-      var meta = document.getElementById("meta");
-      var jsonOut = document.getElementById("jsonOut");
-      var copyBtn = document.getElementById("copyBtn");
-      var downloadBtn = document.getElementById("downloadBtn");
-      var wrapToggle = document.getElementById("wrapToggle");
       var themeBtn = document.getElementById("themeToggle");
-      var fragmentNote = document.getElementById("fragmentNote");
-      var fragmentNoteText = document.getElementById("fragmentNoteText");
-      var apiExample = document.getElementById("apiExample");
-      var lastRaw = "";
-      var lastApiUrl = "";
-      var lastFilename = "scan_html.json";
+      var tabHtml = document.getElementById("tabHtml");
+      var tabSitemap = document.getElementById("tabSitemap");
+      var pageHtml = document.getElementById("pageHtml");
+      var pageSitemap = document.getElementById("pageSitemap");
+      var apiHtmlExample = document.getElementById("apiHtmlExample");
+      var apiSitemapExample = document.getElementById("apiSitemapExample");
+      var htmlEndpoint = document.getElementById("htmlEndpoint");
+      var sitemapEndpoint = document.getElementById("sitemapEndpoint");
 
       function escapeHtml(str) {
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
-      function jsonFilename(siteUrl) {
-        try {
-          var host = new URL(siteUrl).hostname.replace(/^www\./, "");
-          if (!host) return "scan_html.json";
-          return host.replace(/[^a-zA-Z0-9.-]+/g, "-") + "_html.json";
-        } catch (e) {
-          return "scan_html.json";
-        }
-      }
-
-      function showResult(data, apiUrl) {
-        lastRaw = JSON.stringify(data, null, 2);
-        lastApiUrl = apiUrl;
-        lastFilename = jsonFilename(data.url || apiUrl);
-        jsonOut.innerHTML = highlight(lastRaw);
-        var bits = [];
-        if (data.status) bits.push("<b>" + escapeHtml(data.status) + "</b>");
-        if (data.responseTime) bits.push(escapeHtml(data.responseTime));
-        if (data.contentType) bits.push(escapeHtml(data.contentType));
-        meta.innerHTML = bits.join(" · ");
-        result.classList.add("show");
-        resetJsonScroll();
-        setStatus("");
-      }
-
       function apiOrigin() {
         return location.protocol === "file:" ? "http://127.0.0.1:8080" : location.origin;
       }
-      function buildApiUrl(site) {
-        return apiOrigin() + "/api?site=" + encodeURI(site);
+
+      function setApiExamples() {
+        var origin = apiOrigin();
+        apiHtmlExample.textContent = origin + "/api/html?site={SITE_URL}";
+        apiSitemapExample.textContent = origin + "/api/sitemap?site={SITE_URL}";
       }
-      function setApiExample() {
-        apiExample.textContent = apiOrigin() + "/api?site={SITE_URL}";
-      }
+
       function themeIcon() {
         var dark = root.getAttribute("data-theme") === "dark";
         themeBtn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
@@ -379,16 +411,6 @@
           ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
           : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 14.3A9 9 0 1 1 9.7 3a7 7 0 0 0 11.3 11.3z"/></svg>';
       }
-
-      themeIcon();
-      setApiExample();
-
-      themeBtn.addEventListener("click", function () {
-        var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-        root.setAttribute("data-theme", next);
-        localStorage.setItem("theme", next);
-        themeIcon();
-      });
 
       function normalizeSite(value) {
         var u = (value || "").trim();
@@ -402,28 +424,17 @@
         return parsed.href;
       }
 
-      function updateFragmentNote() {
-        var raw = (input.value || "").trim();
-        var hash = raw.indexOf("#");
-        if (hash === -1) {
-          fragmentNote.hidden = true;
-          fragmentNoteText.textContent = "";
-          input.classList.remove("warn");
-          return;
+      function hostFilename(siteUrl, suffix, fallback) {
+        try {
+          var host = new URL(siteUrl).hostname.replace(/^www\./, "");
+          if (!host) return fallback;
+          return host.replace(/[^a-zA-Z0-9.-]+/g, "-") + suffix;
+        } catch (e) {
+          return fallback;
         }
-        var withoutHash = normalizeSite(raw);
-        var scanned = withoutHash || raw.slice(0, hash);
-        fragmentNoteText.innerHTML = "The <code>#...</code> part of a URL is a fragment — it stays in the browser and is never sent over HTTP. This scan will request <code>" + escapeHtml(scanned) + "</code> instead.";
-        fragmentNote.hidden = false;
-        input.classList.add("warn");
       }
 
-      function setStatus(text, isError) {
-        statusEl.textContent = text || "";
-        statusEl.className = isError ? "err" : "";
-      }
-
-      function highlight(json) {
+      function highlightJson(json) {
         if (json.length > 250000) return escapeHtml(json);
         json = escapeHtml(json);
         return json.replace(
@@ -438,102 +449,281 @@
         );
       }
 
-      function resetJsonScroll() {
-        jsonOut.scrollTop = 0;
-        jsonOut.scrollLeft = 0;
-        requestAnimationFrame(function () {
-          jsonOut.scrollTop = 0;
-          jsonOut.scrollLeft = 0;
+      function prettyXml(xml) {
+        var lines = String(xml).replace(/>\s*</g, ">\n<").split("\n");
+        var indent = 0;
+        var out = [];
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i].trim();
+          if (!line) continue;
+          if (line.indexOf("</") === 0) indent = Math.max(0, indent - 1);
+          out.push((indent ? new Array(indent + 1).join("  ") : "") + line);
+          if (/^<\?/.test(line) || /^<!/.test(line)) continue;
+          if (/^<[^/!][^>]*\/>$/.test(line)) continue;
+          if (/^<[^/!][^>]*>.*<\/[\w:.-]+>$/.test(line)) continue;
+          if (/^<[^/!]/.test(line)) indent++;
+        }
+        return out.join("\n");
+      }
+
+      function highlightXml(xml) {
+        if (xml.length > 250000) return escapeHtml(xml);
+        return escapeHtml(xml).replace(
+          /(&lt;\/?)([\w:.-]+)((?:\s+[\w:.-]+(?:=(?:&quot;.*?&quot;))?)*)(\s*\/?&gt;)/g,
+          function (_, open, tag, attrs, close) {
+            attrs = attrs.replace(/([\w:.-]+)=(&quot;.*?&quot;)/g, '<span class="k">$1</span>=<span class="s">$2</span>');
+            return '<span class="nl">' + open + '</span><span class="k">' + tag + '</span>' + attrs + '<span class="nl">' + close + '</span>';
+          }
+        );
+      }
+
+      function showPage(page) {
+        var isHtml = page !== "sitemap";
+        pageHtml.hidden = !isHtml;
+        pageSitemap.hidden = isHtml;
+        htmlEndpoint.hidden = !isHtml;
+        sitemapEndpoint.hidden = isHtml;
+        tabHtml.classList.toggle("active", isHtml);
+        tabSitemap.classList.toggle("active", !isHtml);
+        if (isHtml) {
+          tabHtml.setAttribute("aria-current", "page");
+          tabSitemap.removeAttribute("aria-current");
+        } else {
+          tabSitemap.setAttribute("aria-current", "page");
+          tabHtml.removeAttribute("aria-current");
+        }
+      }
+
+      function createTool(opts) {
+        var form = opts.form;
+        var input = opts.input;
+        var btn = opts.btn;
+        var statusEl = opts.statusEl;
+        var result = opts.result;
+        var meta = opts.meta;
+        var out = opts.out;
+        var wrapToggle = opts.wrapToggle;
+        var copyBtn = opts.copyBtn;
+        var downloadBtn = opts.downloadBtn;
+        var rawBtn = opts.rawBtn;
+        var fragmentNote = opts.fragmentNote;
+        var fragmentNoteText = opts.fragmentNoteText;
+        var lastRaw = "";
+        var lastApiUrl = "";
+        var lastFilename = opts.defaultFilename;
+
+        function setStatus(text, isError) {
+          statusEl.textContent = text || "";
+          statusEl.className = isError ? "status err" : "status";
+        }
+
+        function resetScroll() {
+          out.scrollTop = 0;
+          out.scrollLeft = 0;
+          requestAnimationFrame(function () {
+            out.scrollTop = 0;
+            out.scrollLeft = 0;
+          });
+        }
+
+        function updateFragmentNote() {
+          var raw = (input.value || "").trim();
+          var hash = raw.indexOf("#");
+          if (hash === -1) {
+            fragmentNote.hidden = true;
+            fragmentNoteText.textContent = "";
+            input.classList.remove("warn");
+            return;
+          }
+          var withoutHash = normalizeSite(raw);
+          var scanned = withoutHash || raw.slice(0, hash);
+          fragmentNoteText.innerHTML = "The <code>#...</code> part of a URL is a fragment — it stays in the browser and is never sent over HTTP. This scan will request <code>" + escapeHtml(scanned) + "</code> instead.";
+          fragmentNote.hidden = false;
+          input.classList.add("warn");
+        }
+
+        input.addEventListener("input", updateFragmentNote);
+        input.addEventListener("change", updateFragmentNote);
+        updateFragmentNote();
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          updateFragmentNote();
+          var site = normalizeSite(input.value);
+          if (!site) {
+            setStatus("Enter a valid URL (e.g. https://example.com).", true);
+            lastRaw = "";
+            lastApiUrl = "";
+            lastFilename = opts.defaultFilename;
+            out.innerHTML = "";
+            meta.innerHTML = "";
+            result.classList.remove("show");
+            input.focus();
+            return;
+          }
+
+          var apiUrl = opts.buildApiUrl(site);
+          btn.disabled = true;
+          setStatus(opts.loadingText);
+          resetScroll();
+          result.classList.remove("show");
+
+          fetch(apiUrl)
+            .then(function (res) {
+              return res.text().then(function (text) {
+                return { res: res, text: text };
+              });
+            })
+            .then(function (payload) {
+              if (!payload.res.ok) throw new Error(payload.text || ("failed (" + payload.res.status + ")"));
+              var parsed;
+              try { parsed = opts.parse(payload.text, site); }
+              catch (err) { throw new Error(opts.parseError); }
+              lastRaw = parsed.raw;
+              lastApiUrl = apiUrl;
+              lastFilename = parsed.filename;
+              out.innerHTML = parsed.html;
+              meta.innerHTML = parsed.metaHtml || "";
+              result.classList.add("show");
+              resetScroll();
+              setStatus("");
+            })
+            .catch(function (err) {
+              setStatus(err.message || opts.failText, true);
+            })
+            .then(function () {
+              btn.disabled = false;
+            });
+        });
+
+        wrapToggle.addEventListener("change", function () {
+          out.classList.toggle("wrap", wrapToggle.checked);
+        });
+
+        copyBtn.addEventListener("click", function () {
+          if (!lastRaw) return;
+          function done() {
+            copyBtn.textContent = "copied";
+            setTimeout(function () { copyBtn.textContent = "copy"; }, 1000);
+          }
+          function fallback() {
+            var ta = document.createElement("textarea");
+            ta.value = lastRaw;
+            ta.setAttribute("readonly", "");
+            ta.style.cssText = "position:fixed;left:-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand("copy"); done(); } catch (e) {}
+            document.body.removeChild(ta);
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(lastRaw).then(done).catch(fallback);
+          } else fallback();
+        });
+
+        downloadBtn.addEventListener("click", function () {
+          if (!lastRaw) return;
+          var url = URL.createObjectURL(new Blob([lastRaw], { type: opts.mimeType }));
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = lastFilename || opts.defaultFilename;
+          a.rel = "noopener";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+        });
+
+        rawBtn.addEventListener("click", function () {
+          if (lastApiUrl) window.open(lastApiUrl, "_blank", "noopener");
         });
       }
 
-      input.addEventListener("input", updateFragmentNote);
-      input.addEventListener("change", updateFragmentNote);
-      updateFragmentNote();
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        updateFragmentNote();
-        var site = normalizeSite(input.value);
-        if (!site) {
-          setStatus("Enter a valid URL (e.g. https://example.com).", true);
-          lastRaw = "";
-          lastApiUrl = "";
-          lastFilename = "scan_html.json";
-          jsonOut.innerHTML = "";
-          meta.innerHTML = "";
-          result.classList.remove("show");
-          input.focus();
-          return;
+      createTool({
+        form: document.getElementById("htmlForm"),
+        input: document.getElementById("htmlInput"),
+        btn: document.getElementById("htmlBtn"),
+        statusEl: document.getElementById("htmlStatus"),
+        result: document.getElementById("htmlResult"),
+        meta: document.getElementById("htmlMeta"),
+        out: document.getElementById("htmlOut"),
+        wrapToggle: document.getElementById("htmlWrap"),
+        copyBtn: document.getElementById("htmlCopy"),
+        downloadBtn: document.getElementById("htmlDownload"),
+        rawBtn: document.getElementById("htmlRaw"),
+        fragmentNote: document.getElementById("htmlFragmentNote"),
+        fragmentNoteText: document.getElementById("htmlFragmentNoteText"),
+        defaultFilename: "scan_html.json",
+        mimeType: "application/json",
+        loadingText: "scanning…",
+        failText: "scan failed",
+        parseError: "API did not return JSON.",
+        buildApiUrl: function (site) {
+          return apiOrigin() + "/api/html?site=" + encodeURI(site);
+        },
+        parse: function (text, site) {
+          var data = JSON.parse(text);
+          var bits = [];
+          if (data.status) bits.push("<b>" + escapeHtml(data.status) + "</b>");
+          if (data.responseTime) bits.push(escapeHtml(data.responseTime));
+          if (data.contentType) bits.push(escapeHtml(data.contentType));
+          var raw = JSON.stringify(data, null, 2);
+          return {
+            raw: raw,
+            html: highlightJson(raw),
+            filename: hostFilename(data.url || site, "_html.json", "scan_html.json"),
+            metaHtml: bits.join(" · ")
+          };
         }
-
-        var apiUrl = buildApiUrl(site);
-        btn.disabled = true;
-        setStatus("scanning…");
-        resetJsonScroll();
-        result.classList.remove("show");
-
-        fetch(apiUrl)
-          .then(function (res) {
-            return res.text().then(function (text) {
-              return { res: res, text: text };
-            });
-          })
-          .then(function (out) {
-            if (!out.res.ok) throw new Error(out.text || ("failed (" + out.res.status + ")"));
-            var data;
-            try { data = JSON.parse(out.text); }
-            catch (err) { throw new Error("API did not return JSON."); }
-            showResult(data, apiUrl);
-          })
-          .catch(function (err) {
-            setStatus(err.message || "scan failed", true);
-          })
-          .then(function () {
-            btn.disabled = false;
-          });
       });
 
-      wrapToggle.addEventListener("change", function () {
-        jsonOut.classList.toggle("wrap", wrapToggle.checked);
-      });
-
-      copyBtn.addEventListener("click", function () {
-        if (!lastRaw) return;
-        function done() {
-          copyBtn.textContent = "copied";
-          setTimeout(function () { copyBtn.textContent = "copy"; }, 1000);
+      createTool({
+        form: document.getElementById("sitemapForm"),
+        input: document.getElementById("sitemapInput"),
+        btn: document.getElementById("sitemapBtn"),
+        statusEl: document.getElementById("sitemapStatus"),
+        result: document.getElementById("sitemapResult"),
+        meta: document.getElementById("sitemapMeta"),
+        out: document.getElementById("sitemapOut"),
+        wrapToggle: document.getElementById("sitemapWrap"),
+        copyBtn: document.getElementById("sitemapCopy"),
+        downloadBtn: document.getElementById("sitemapDownload"),
+        rawBtn: document.getElementById("sitemapRaw"),
+        fragmentNote: document.getElementById("sitemapFragmentNote"),
+        fragmentNoteText: document.getElementById("sitemapFragmentNoteText"),
+        defaultFilename: "sitemap.xml",
+        mimeType: "application/xml",
+        loadingText: "crawling site…",
+        failText: "sitemap failed",
+        parseError: "API did not return XML.",
+        buildApiUrl: function (site) {
+          return apiOrigin() + "/api/sitemap?site=" + encodeURI(site);
+        },
+        parse: function (text, site) {
+          if (text.indexOf("<urlset") === -1) throw new Error("API did not return XML.");
+          var pretty = prettyXml(text);
+          var count = (text.match(/<url>/g) || []).length;
+          return {
+            raw: pretty,
+            html: highlightXml(pretty),
+            filename: hostFilename(site, "_sitemap.xml", "sitemap.xml"),
+            metaHtml: "<b>" + count + "</b> url" + (count === 1 ? "" : "s")
+          };
         }
-        function fallback() {
-          var ta = document.createElement("textarea");
-          ta.value = lastRaw;
-          ta.setAttribute("readonly", "");
-          ta.style.cssText = "position:fixed;left:-9999px";
-          document.body.appendChild(ta);
-          ta.select();
-          try { document.execCommand("copy"); done(); } catch (e) {}
-          document.body.removeChild(ta);
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(lastRaw).then(done).catch(fallback);
-        } else fallback();
       });
 
-      downloadBtn.addEventListener("click", function () {
-        if (!lastRaw) return;
-        var url = URL.createObjectURL(new Blob([lastRaw], { type: "application/json" }));
-        var a = document.createElement("a");
-        a.href = url;
-        a.download = lastFilename || "scan_html.json";
-        a.rel = "noopener";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(function () { URL.revokeObjectURL(url); }, 0);
-      });
+      themeIcon();
+      setApiExamples();
+      if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+      showPage("html");
+      tabHtml.addEventListener("click", function () { showPage("html"); });
+      tabSitemap.addEventListener("click", function () { showPage("sitemap"); });
 
-      document.getElementById("rawBtn").addEventListener("click", function () {
-        if (lastApiUrl) window.open(lastApiUrl, "_blank", "noopener");
+      themeBtn.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+        themeIcon();
       });
     })();
   </script>

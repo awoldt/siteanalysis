@@ -34,6 +34,18 @@ func main() {
 		w.Write(file)
 	})
 
+	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		file, err := os.ReadFile("robots.txt")
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte("error while loading page :("))
+			return
+		}
+
+		w.Header().Set("content-type", "text/plain")
+		w.Write(file)
+	})
+
 	r.Get("/favicon-96x96.png", serveFile("favicon-96x96.png"))
 	r.Get("/favicon.svg", serveFile("favicon.svg"))
 	r.Get("/favicon.ico", serveFile("favicon.ico"))
@@ -42,7 +54,7 @@ func main() {
 	r.Get("/web-app-manifest-192x192.png", serveFile("web-app-manifest-192x192.png"))
 	r.Get("/web-app-manifest-512x512.png", serveFile("web-app-manifest-512x512.png"))
 
-	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/api/html", func(w http.ResponseWriter, r *http.Request) {
 		validUrl, err := extractAbsoluteSiteQuery(r.RequestURI)
 		if err != nil {
 			w.WriteHeader(400)
