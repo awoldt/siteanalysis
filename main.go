@@ -46,13 +46,12 @@ func main() {
 		w.Write(file)
 	})
 
-	r.Get("/favicon-96x96.png", serveFile("favicon-96x96.png"))
-	r.Get("/favicon.svg", serveFile("favicon.svg"))
-	r.Get("/favicon.ico", serveFile("favicon.ico"))
-	r.Get("/apple-touch-icon.png", serveFile("apple-touch-icon.png"))
-	r.Get("/site.webmanifest", serveFile("site.webmanifest"))
-	r.Get("/web-app-manifest-192x192.png", serveFile("web-app-manifest-192x192.png"))
-	r.Get("/web-app-manifest-512x512.png", serveFile("web-app-manifest-512x512.png"))
+	r.Get("/favicon-96x96.png", serveFile("assets/favicon-96x96.png"))
+	r.Get("/favicon.svg", serveFile("assets/favicon.svg"))
+	r.Get("/favicon.ico", serveFile("assets/favicon.ico"))
+	r.Get("/apple-touch-icon.png", serveFile("assets/apple-touch-icon.png"))
+	r.Get("/web-app-manifest-192x192.png", serveFile("assets/web-app-manifest-192x192.png"))
+	r.Get("/web-app-manifest-512x512.png", serveFile("assets/web-app-manifest-512x512.png"))
 
 	r.Get("/api/html", func(w http.ResponseWriter, r *http.Request) {
 		validUrl, err := extractAbsoluteSiteQuery(r.RequestURI)
