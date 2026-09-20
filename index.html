@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Siteanalysis — HTML parser and XML sitemap generator</title>
-  <meta name="description" content="Free API to parse public webpages into structured JSON (HTML, headers, and HTTP response details) or crawl a site and generate an XML sitemap. No API keys required.">
+  <title>Siteanalysis — Free HTML Parser API</title>
+  <meta name="description" content="Free API to parse public webpages into structured JSON (HTML, headers, and HTTP response details). No API keys required.">
   <link rel="canonical" href="https://siteanalysis.dev/">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://siteanalysis.dev/">
-  <meta property="og:title" content="siteanalysis — HTML parser and XML sitemap generator">
-  <meta property="og:description" content="Free API to parse public webpages into structured JSON or crawl a site and generate an XML sitemap. No API keys required.">
+  <meta property="og:title" content="siteanalysis — HTML parser">
+  <meta property="og:description" content="Free API to parse public webpages into structured JSON. No API keys required.">
   <meta property="og:site_name" content="siteanalysis">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="siteanalysis — HTML parser and XML sitemap generator">
-  <meta name="twitter:description" content="Free API to parse public webpages into structured JSON or crawl a site and generate an XML sitemap. No API keys required.">
+  <meta name="twitter:title" content="siteanalysis — HTML parser">
+  <meta name="twitter:description" content="Free API to parse public webpages into structured JSON. No API keys required.">
   <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="shortcut icon" href="/favicon.ico" />
@@ -85,29 +85,9 @@
     .row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 12px;
       margin-bottom: 28px;
-    }
-    .tabs {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .tabs button {
-      appearance: none;
-      border: 0;
-      background: none;
-      color: var(--muted);
-      font: inherit;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 3px;
-    }
-    .tabs button:hover { color: var(--fg); }
-    .tabs button.active {
-      color: var(--fg);
-      font-weight: 700;
     }
     #themeToggle {
       appearance: none;
@@ -274,7 +254,6 @@
       margin: 0 0 20px;
       max-width: 42em;
     }
-    footer .endpoint[hidden] { display: none; }
     footer .endpoint .url {
       display: block;
       margin-top: 8px;
@@ -307,14 +286,10 @@
 </head>
 <body>
   <div class="row">
-    <nav class="tabs" aria-label="Tools">
-      <button type="button" id="tabHtml" class="active" aria-current="page">html</button>
-      <button type="button" id="tabSitemap">sitemap</button>
-    </nav>
     <button type="button" id="themeToggle" aria-label="Toggle theme"></button>
   </div>
 
-  <section id="pageHtml">
+  <section>
     <form id="htmlForm">
       <input id="htmlInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to scan">
       <button class="scan" type="submit" id="htmlBtn">scan</button>
@@ -339,39 +314,11 @@
     </div>
   </section>
 
-  <section id="pageSitemap" hidden>
-    <form id="sitemapForm">
-      <input id="sitemapInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-label="URL to generate a sitemap from">
-      <button class="scan" type="submit" id="sitemapBtn">generate</button>
-    </form>
-    <div id="sitemapFragmentNote" class="alert" hidden role="status">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <p id="sitemapFragmentNoteText"></p>
-    </div>
-    <p id="sitemapStatus" class="status" role="status"></p>
-    <hr>
-    <div id="sitemapResult" class="result">
-      <div class="bar">
-        <span id="sitemapMeta"></span>
-        <span class="actions">
-          <label class="wrap"><input type="checkbox" id="sitemapWrap"> wrap</label>
-          <button type="button" id="sitemapCopy">copy</button>
-          <button type="button" id="sitemapDownload">download</button>
-          <button type="button" id="sitemapRaw">raw</button>
-        </span>
-      </div>
-      <pre id="sitemapOut"></pre>
-    </div>
-  </section>
-
   <footer>
     <p class="endpoint" id="htmlEndpoint">Returns structured JSON of the page's HTML and HTTP headers:
       <code class="url" id="apiHtmlExample"></code>
     </p>
-    <p class="endpoint" id="sitemapEndpoint" hidden>Crawls the site from its root and returns an XML sitemap of the unique internal links it finds:
-      <code class="url" id="apiSitemapExample"></code>
-    </p>
-    <p class="about"><b>Siteanalysis</b> is a free-to-use API that can parse HTML and crawl site links to generate sitemaps. The endpoints are simple GET requests that can be hit through a web browser, or requested in backend applications, either works. Results are returned in JSON and XML formats.</p>
+    <p class="about"><b>Siteanalysis</b> is a free-to-use API that can parse HTML. The endpoint is a simple GET request that can be hit through a web browser, or requested in backend applications, either works. Results are returned in JSON.</p>
 
     <p class="credit"><a href="https://awoldt.dev" target="_blank" rel="noopener">made by awoldt</a><span>·</span><a href="https://github.com/awoldt/siteanalysis" target="_blank" rel="noopener">source code</a></p>
   </footer>
@@ -380,14 +327,7 @@
     (function () {
       var root = document.documentElement;
       var themeBtn = document.getElementById("themeToggle");
-      var tabHtml = document.getElementById("tabHtml");
-      var tabSitemap = document.getElementById("tabSitemap");
-      var pageHtml = document.getElementById("pageHtml");
-      var pageSitemap = document.getElementById("pageSitemap");
       var apiHtmlExample = document.getElementById("apiHtmlExample");
-      var apiSitemapExample = document.getElementById("apiSitemapExample");
-      var htmlEndpoint = document.getElementById("htmlEndpoint");
-      var sitemapEndpoint = document.getElementById("sitemapEndpoint");
 
       function escapeHtml(str) {
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -398,9 +338,7 @@
       }
 
       function setApiExamples() {
-        var origin = apiOrigin();
-        apiHtmlExample.textContent = origin + "/api/html?site={SITE_URL}";
-        apiSitemapExample.textContent = origin + "/api/sitemap?site={SITE_URL}";
+        apiHtmlExample.textContent = apiOrigin() + "/api/html?site={SITE_URL}";
       }
 
       function themeIcon() {
@@ -446,51 +384,6 @@
             return '<span class="' + cls + '">' + match + "</span>";
           }
         );
-      }
-
-      function prettyXml(xml) {
-        var lines = String(xml).replace(/>\s*</g, ">\n<").split("\n");
-        var indent = 0;
-        var out = [];
-        for (var i = 0; i < lines.length; i++) {
-          var line = lines[i].trim();
-          if (!line) continue;
-          if (line.indexOf("</") === 0) indent = Math.max(0, indent - 1);
-          out.push((indent ? new Array(indent + 1).join("  ") : "") + line);
-          if (/^<\?/.test(line) || /^<!/.test(line)) continue;
-          if (/^<[^/!][^>]*\/>$/.test(line)) continue;
-          if (/^<[^/!][^>]*>.*<\/[\w:.-]+>$/.test(line)) continue;
-          if (/^<[^/!]/.test(line)) indent++;
-        }
-        return out.join("\n");
-      }
-
-      function highlightXml(xml) {
-        if (xml.length > 250000) return escapeHtml(xml);
-        return escapeHtml(xml).replace(
-          /(&lt;\/?)([\w:.-]+)((?:\s+[\w:.-]+(?:=(?:&quot;.*?&quot;))?)*)(\s*\/?&gt;)/g,
-          function (_, open, tag, attrs, close) {
-            attrs = attrs.replace(/([\w:.-]+)=(&quot;.*?&quot;)/g, '<span class="k">$1</span>=<span class="s">$2</span>');
-            return '<span class="nl">' + open + '</span><span class="k">' + tag + '</span>' + attrs + '<span class="nl">' + close + '</span>';
-          }
-        );
-      }
-
-      function showPage(page) {
-        var isHtml = page !== "sitemap";
-        pageHtml.hidden = !isHtml;
-        pageSitemap.hidden = isHtml;
-        htmlEndpoint.hidden = !isHtml;
-        sitemapEndpoint.hidden = isHtml;
-        tabHtml.classList.toggle("active", isHtml);
-        tabSitemap.classList.toggle("active", !isHtml);
-        if (isHtml) {
-          tabHtml.setAttribute("aria-current", "page");
-          tabSitemap.removeAttribute("aria-current");
-        } else {
-          tabSitemap.setAttribute("aria-current", "page");
-          tabHtml.removeAttribute("aria-current");
-        }
       }
 
       function createTool(opts) {
@@ -676,47 +569,9 @@
         }
       });
 
-      createTool({
-        form: document.getElementById("sitemapForm"),
-        input: document.getElementById("sitemapInput"),
-        btn: document.getElementById("sitemapBtn"),
-        statusEl: document.getElementById("sitemapStatus"),
-        result: document.getElementById("sitemapResult"),
-        meta: document.getElementById("sitemapMeta"),
-        out: document.getElementById("sitemapOut"),
-        wrapToggle: document.getElementById("sitemapWrap"),
-        copyBtn: document.getElementById("sitemapCopy"),
-        downloadBtn: document.getElementById("sitemapDownload"),
-        rawBtn: document.getElementById("sitemapRaw"),
-        fragmentNote: document.getElementById("sitemapFragmentNote"),
-        fragmentNoteText: document.getElementById("sitemapFragmentNoteText"),
-        defaultFilename: "sitemap.xml",
-        mimeType: "application/xml",
-        loadingText: "crawling site…",
-        failText: "sitemap failed",
-        parseError: "API did not return XML.",
-        buildApiUrl: function (site) {
-          return apiOrigin() + "/api/sitemap?site=" + encodeURI(site);
-        },
-        parse: function (text, site) {
-          if (text.indexOf("<urlset") === -1) throw new Error("API did not return XML.");
-          var pretty = prettyXml(text);
-          var count = (text.match(/<url>/g) || []).length;
-          return {
-            raw: pretty,
-            html: highlightXml(pretty),
-            filename: hostFilename(site, "_sitemap.xml", "sitemap.xml"),
-            metaHtml: "<b>" + count + "</b> url" + (count === 1 ? "" : "s")
-          };
-        }
-      });
-
       themeIcon();
       setApiExamples();
       if (location.hash) history.replaceState(null, "", location.pathname + location.search);
-      showPage("html");
-      tabHtml.addEventListener("click", function () { showPage("html"); });
-      tabSitemap.addEventListener("click", function () { showPage("sitemap"); });
 
       themeBtn.addEventListener("click", function () {
         var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
